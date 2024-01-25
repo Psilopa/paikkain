@@ -14,4 +14,3 @@ paikkain.py:
 # TODO: SHOULD CHECK THAT ALL CELLS IN FIRST 2(3) LINES HAVE SENSIBLE VALUES:
 # (UNIQUE for 1, regular vocab for 2)
 # TODO: Add support for locality text field manipulation even when there are existing coordinate fields?
-# TODO: ADD output format replace_if_previously_empty ?
