@@ -90,11 +90,14 @@ try:
     knownd_keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
     knownd_sheetnames = c['knowndatafiles'].get('sheetname',None)
     knownd_filenames = [ Path(x) for x in  c['knowndatafiles'].get('filenames') ]  
-    cmd_replace = c['knowndatafiles'].get('cmd_replace')
-    cmd_append = c['knowndatafiles'].get('cmd_append')
-    cmd_nothing = c['knowndatafiles'].get('cmd_nothing')
-    outputops = [cmd_replace, cmd_append, cmd_nothing]
-    activeops = [cmd_replace, cmd_append]
+    try:
+        cmd_replace = c['knowndatafiles']['cmd_replace']
+        cmd_append = c['knowndatafiles']['cmd_append']
+        cmd_fillempty = c['knowndatafiles']['cmd_fillempty']
+        cmd_nothing = c['knowndatafiles']['cmd_nothing']
+    except LookupError as msg: raise jkError(f"Command names must be defined in the config file: f{msg}.")
+    outputops = [cmd_replace, cmd_append, cmd_fillempty, cmd_nothing]
+    activeops = [cmd_replace, cmd_append, cmd_fillempty]
 
     pnote = c['outputfiles'].get('transcribernote', "") 
     if c['outputfiles'].get('transcribernote_appendfilenames', False):
@@ -219,7 +222,7 @@ for infn in input_files:
                         oper = geodata.get_output_action_for_column(colname, outputops) 
                         if oper not in outputops:
                             continue # Skip column with actions that are not output operations
-                        elif oper == cmd_replace:
+                        elif (oper == cmd_replace) or ( oper == cmd_fillempty and not outdict[colname] ):
                             outdict[colname] = val
                             edited[colname] = True
                             outdata.setbackground(row, col, replaceFill)
