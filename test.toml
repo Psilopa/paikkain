@@ -1,0 +1,37 @@
+programname = "paikkain"
+version = 2.91
+
+[knowndatafiles]
+filenames = ['/home/kahanpaa/paikkain/paikka-aineistot/paikkain_Fin_sl-gen030dev.xlsx']
+sheetnames = ["locdata"] # Read first tab if sheetnames are not defined
+keep_original_data_marker = "<original>"
+#format = "xlsx"
+cmd_replace = "replace"
+cmd_append = "append"
+cmd_nothing = "no_output"
+
+[inputfiles]
+#sheetname = Specimens
+first_data_line = 3
+# Skip_row if_any (non-whitespace) data_exists in these columns
+skip_if_nonempty = ["MYGathering[0][MYLongitude]", "MYGathering[0][MYLatitude]"]
+
+
+[outputfiles]
+filename_add = "autolocalities"
+# output_format supported values: xlsx,fast-xlsx, csv. 
+# XLSX keeps original formatting, but is very slow.
+# CSV support is experimental ... avoid!
+output_format = "fast-xlsx"
+transcribernotefield = "MYTranscriberNotes"
+# Leave append_original_geodata_to_column empty for no storage of pre-prosessing data
+append_original_geodata_to_column = "MYGathering[0][MYCoordinateNotes]"
+original_geodata_to_column_header = "Original geodata before automatic processing:"
+transcribernote = 'Automatic georeferencing by ${programname} ${version} using geodatafile ${geodatafile:filename}'
+add_date_to_note = 1
+new_column_insertion_position = 10
+data_append_connector = ","
+replace_fillcolor = "fa867e"
+append_fillcolor = "ffed83"
+
+
