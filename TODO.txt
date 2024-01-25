@@ -3,7 +3,6 @@
 - Code cleanup
 - Add support for CSV files
   -- needs to specify encoding, CSV file features in INI file
-- add support for ignored characters list in config file
 
 Minor improvements:
 Known data reader: 
