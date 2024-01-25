@@ -1,7 +1,5 @@
 programname = "paikkain"
 version = 2.91
-transcribernote = 'Automatic georeferencing by paikkain 2.91 using geodata files'
-transcribernote_appendfilenames = 1
 
 [knowndatafiles]
 # NOTE: Currently only one known data file per run is supported
@@ -26,6 +24,8 @@ filename_add = "autolocalities"
 # XLSX keeps original formatting, but is very slow.
 # CSV support is experimental ... avoid!
 output_format = "fast-xlsx"
+transcribernote = 'Automatic georeferencing by paikkain 2.91 using geodata files'
+transcribernote_appendfilenames = 1
 transcribernotefield = "MYTranscriberNotes"
 # Leave append_original_geodata_to_column empty for no storage of pre-prosessing data
 append_original_geodata_to_column = "MYGathering[0][MYCoordinateNotes]"
