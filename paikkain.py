@@ -101,8 +101,8 @@ try:
     outputops = [cmd_replace, cmd_append, cmd_nothing]
     activeops = [cmd_replace, cmd_append]
 
-    pnote = c.get('transcribernote', "") 
-    if c.get('transcribernote_appendfilenames', False):
+    pnote = c['outputfiles'].get('transcribernote', "") 
+    if c['outputfiles'].get('transcribernote_appendfilenames', False):
         pnote += " "
         pnote += ", ".join((str(x) for x in knownd_filenames) )
     output_marker = c['outputfiles'].get('filename_add')
