@@ -5,3 +5,4 @@
 - Add support for CSV files
   -- needs to specify encoding, CSV file features in INI file
 - convert to use TOML for config scripts
+- add support for ignored characters list in config file
