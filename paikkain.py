@@ -86,6 +86,7 @@ try:
 
     inc_sheetname = c['inputfiles'].get('sheetname', None)
     inc_first_data_line = c['inputfiles'].get('first_data_line ', 1)
+    ignorechars = c.get('ignore_in_comparison',"")
 
     knownd_keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
     knownd_sheetnames = c['knowndatafiles'].get('sheetname',None)
@@ -194,10 +195,11 @@ for infn in input_files:
             outdict = indata.get_row_as_dict(row) 
             edited = { k: False for k in  rowdict.keys() }
             try: 
+                # If line has content in specified columns already, skip to WriteRow
                 for skipname in skip_if_content_columnnames: 
                     if not outdata.isempty_by_colname(row,  skipname): 
                         raise WriteRow
-                matchrows = geodata.find_matches(rowdict,  rules)
+                matchrows = geodata.find_matches(rowdict,  rules, ignorechars)
     #            if len(matchrows) > 1: matchrows = match_selector(geodata,  matchrows,  rowdict)
                 nmatch = len(matchrows)
                 if nmatch == 0:  
