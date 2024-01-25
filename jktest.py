@@ -86,3 +86,4 @@ class singlerule():
                 retval = self._timetest(userval,  geoval,  cmpfnc)
             return retval
         else: raise jkError(f"Unknown test type {self.type } for test {self.colname}")        
+    
