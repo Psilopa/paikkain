@@ -273,7 +273,6 @@ for infn in input_files:
         outdata.close()
         if outputformat in ['csv',  'fast-xlsx'] and origfn.exists(): os.remove(origfn) 
     except (jkError,  FileNotFoundError) as msg:
-        if outputformat in ['csv',  'fast-xlsx'] and origfn.exists(): os.remove(origfn) 
         log.critical(msg)
         sys.exit() 
 
