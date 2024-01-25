@@ -17,7 +17,7 @@ def my2str(x):
     else: return str(x)
     
 def streq(u, w): 
-    "Compare strings in a case-insensitive way"
+    "Compare strings in a case-insensitive way" 
     # Primitive implementation
     return u.lower() == w.lower()
 
