@@ -21,8 +21,8 @@ def streq(u, w):
     # Primitive implementation
     return u.lower() == w.lower()
 
-def  locstrip(s):
-    """Normalize string: remove double spaces, characters ,.;: """
+def  locstrip(s,ignorechars=""):
+    """Normalize string: remove double spaces"""
     if not s or not isinstance(s,str): return s
     s = re.sub(r"\s+",  " ",  s)
     s = re.sub(" mlk\.?$",  " maalaiskunta",  s)
@@ -30,6 +30,7 @@ def  locstrip(s):
     s = re.sub(" lk.?$",  " landskommun",  s)
     s = re.sub("S[\:\.\,]t ",  "St ",  s)
     s = re.sub("St\. ",  "St ",  s)
+    for ch in ignorechars: s = s.replace(ch,"")
     return s
 
 def joinstr(x, y,  sep):
