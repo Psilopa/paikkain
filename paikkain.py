@@ -92,68 +92,68 @@ args = ap.parse_args()
 executedir = Path(sys.argv[0]).parent
 log = createlogger( executedir / Path(progname + ".log") )
 log.info(f"Starting {progname} on {datetime.datetime.now()}")
-
 input_files  = [Path(x) for x in args.input_files]
 
-# Read parameters from config file
-conffn = args.conffn[0]
-log.info( f"Reading configuration file {conffn}"  )
-config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation() )
-config.read(conffn, 'UTF-8')
-
-insheetname = config.get('inputfiles', 'datasheetname', fallback=None)
-input_first_data_line = config['inputfiles'].getint('first_data_line')
-keep_original_data_marker = config['inputfiles']['keep_original_data_marker']
-keep_original_data_marker = keep_original_data_marker.lower()
-
-gdsheetname = config.get('geodatafile', 'sheetname', fallback=None)
-gdfn = Path(config['geodatafile']['filename'])
-
-
-cmd_replace = config['geodatafile']['cmd_replace']
-cmd_append = config['geodatafile']['cmd_append']
-cmd_nothing = config['geodatafile']['cmd_nothing']
-outputops = [cmd_replace, cmd_append, cmd_nothing]
-activeops = [cmd_replace, cmd_append]
-pnote = config.get('outputfiles', 'transcribernote', fallback = "")
-output_marker = config['outputfiles']['filename_add']
-if config['outputfiles'].getboolean('add_date_to_note'):
-    pnote = pnote + " (%s)" % datetime.date.today()
-outputformat = config['outputfiles']['output_format']
-outputformat = outputformat.lower()
-if outputformat not in ['csv', 'xlsx',  'fast-xlsx']: 
-    log.critical(f"Unknown output format: {outputformat.upper()}"); sys.exit()
-    
-log.info(f"Output format: {outputformat.upper()}")
-
-if pnote: pnotecolname = config['outputfiles']['transcribernotefield']
-itemsep = config['outputfiles']['data_append_connector'] + " "
-replacefillcolor = config['outputfiles']['replace_fillcolor']
-appendfillcolor = config['outputfiles']['append_fillcolor']
-new_field_insert_point = config['outputfiles'].getint('new_column_insertion_position')
-
-original_geodata_header = config['outputfiles']['original_geodata_to_column_header']
-append_original_geodata_to_column = config.get('outputfiles', 'append_original_geodata_to_column', fallback=None)
-
-skip_if_content_columnnames = []
-for n in range(1, 10): 
-    colname = 'skip_if_nonempty%i' % n
-    skipn = config['inputfiles'].get(colname)
-    if skipn: skip_if_content_columnnames.append(skipn.lower())
-
-# Colour objects for XLS cell background setting
-replaceFill = PatternFill(start_color=replacefillcolor, end_color= replacefillcolor, fill_type='solid')
-appendFill = PatternFill(start_color=appendfillcolor, end_color= appendfillcolor, fill_type='solid')
-
-outdata = None
-geodata = None
-
-# Read geodata file
 try: 
+    # Read parameters from config file
+    conffn = Path(args.conffn[0]) 
+    log.info( f"Reading configuration file {conffn}"  )
+    if not conffn.is_file():
+        raise jkError(f"File '{conffn.absolute()}' does not exist or if not readable.")
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation() )
+    config.read(conffn, 'UTF-8')
+
+    insheetname = config.get('inputfiles', 'datasheetname', fallback=None)
+    input_first_data_line = config['inputfiles'].getint('first_data_line')
+    keep_original_data_marker = config['inputfiles']['keep_original_data_marker']
+    keep_original_data_marker = keep_original_data_marker.lower()
+
+    gdsheetname = config.get('geodatafile', 'sheetname', fallback=None)
+    gdfn = Path(config['geodatafile']['filename'])
+
+    cmd_replace = config['geodatafile']['cmd_replace']
+    cmd_append = config['geodatafile']['cmd_append']
+    cmd_nothing = config['geodatafile']['cmd_nothing']
+    outputops = [cmd_replace, cmd_append, cmd_nothing]
+    activeops = [cmd_replace, cmd_append]
+    pnote = config.get('outputfiles', 'transcribernote', fallback = "")
+    output_marker = config['outputfiles']['filename_add']
+    if config['outputfiles'].getboolean('add_date_to_note'):
+        pnote = pnote + " (%s)" % datetime.date.today()
+    outputformat = config['outputfiles']['output_format']
+    outputformat = outputformat.lower()
+    if outputformat not in ['csv', 'xlsx',  'fast-xlsx']: 
+        log.critical(f"Unknown output format: {outputformat.upper()}"); sys.exit()
+        
+    log.info(f"Output format: {outputformat.upper()}")
+
+    if pnote: pnotecolname = config['outputfiles']['transcribernotefield']
+    itemsep = config['outputfiles']['data_append_connector'] + " "
+    replacefillcolor = config['outputfiles']['replace_fillcolor']
+    appendfillcolor = config['outputfiles']['append_fillcolor']
+    new_field_insert_point = config['outputfiles'].getint('new_column_insertion_position')
+
+    original_geodata_header = config['outputfiles']['original_geodata_to_column_header']
+    append_original_geodata_to_column = config.get('outputfiles', 'append_original_geodata_to_column', fallback=None)
+
+    skip_if_content_columnnames = []
+    for n in range(1, 10): 
+        colname = 'skip_if_nonempty%i' % n
+        skipn = config['inputfiles'].get(colname)
+        if skipn: skip_if_content_columnnames.append(skipn.lower())
+
+    # Colour objects for XLS cell background setting
+    replaceFill = PatternFill(start_color=replacefillcolor, end_color= replacefillcolor, fill_type='solid')
+    appendFill = PatternFill(start_color=appendfillcolor, end_color= appendfillcolor, fill_type='solid')
+
+    outdata = None
+    geodata = None
+
+    # Read geodata file
     log.info(f"Loading geodata from file {gdfn}")
     geodata = jksheet.GeoData.fromfile(Path(gdfn), gdsheetname)     
 except (FileNotFoundError,  jkError) as err: 
-    log.critical(f"{err} Exiting")
+    log.critical(f"{err} Exiting.")
     sys.exit()
 log.debug("Parsing rules from geodata file headers")
 rules = geodata.parse_rules(known_test_types) # Parse row matching rules from GeoData file header rows
