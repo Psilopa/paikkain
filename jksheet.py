@@ -4,7 +4,7 @@ import openpyxl
 from openpyxl.cell import WriteOnlyCell
 import jktest,  jktools
 from jkerror import jkError
-import csv, logging  
+import csv, logging, abc
 
 progname = 'paikkain'
 log = logging.getLogger(progname)
@@ -25,12 +25,7 @@ class jkXLSfilesheet():
         self.ncols = 0
         self.nrows = 0
         self.valuegrid = None # In-memory copy of cell values only for speed
-        
-    @classmethod
-    def fromfile(jkXLSfilesheet, fn,  sheetname):
-        x = jkXLSfilesheet()
-        x.open(fn,  sheetname)
-        return x
+
 
     def open(self,  fn,  sheetname=None):
         """Uses first sheet is name is not given"""
@@ -162,8 +157,7 @@ class jkXLSfilesheet():
 ##        # Local memory copy of values for speed: create line 0 to match row indexing with self.ws (which indexes starting from 1)
 ##        self._valuegrid_from_data() # Copy data to a grid for read access speed!
 ##        self._updateheadervars()
-##        self._indexcolumnnames()
-        
+##        self._indexcolumnnames()        
         
         
 class GeoData(jkXLSfilesheet):
@@ -171,6 +165,12 @@ class GeoData(jkXLSfilesheet):
 
     def __init__(self,  *args, **kwargs):        
         super(jkXLSfilesheet, self).__init__(*args, **kwargs)        
+        
+    @classmethod
+    def fromfile(GeoData, fn,  sheetname):
+        x = GeoData()
+        x.open(fn,  sheetname)
+        return x
 
     def parse_rules(self,rulenames):
         """Find columns with rules and store them. rulenames = a list of allowed rule names."""
@@ -224,13 +224,18 @@ class GeoData(jkXLSfilesheet):
         
                 
 # BASIC INPUT FILE CLASS
-class InputData(jkXLSfilesheet): # Currently a thin wrapper around Excel sheets, but may change
+class InputData(jkXLSfilesheet, abc.ABC): # Currently a thin wrapper around Excel sheets, but may change
     def __init__(self,  *args, **kwargs):
         super(jkXLSfilesheet, self).__init__(*args, **kwargs)        
+    @classmethod
+    def fromfile(InputData, fn,  sheetname):
+        x = InputData()
+        x.open(fn,  sheetname)
+        return x
 
 
 # BASIC OUTPUT FILE CLASS
-class OutData(jkXLSfilesheet):
+class OutData(jkXLSfilesheet, abc.ABC):
     def __init__(self,  *args, **kwargs):
         super(jkXLSfilesheet, self).__init__(*args, **kwargs)        
 
@@ -273,27 +278,24 @@ class OutData(jkXLSfilesheet):
 
     # Override thesein subclasses, if operation is meaningful
     # TODO: make these actually virtual
+    @abc.abstractmethod
     def copyheaders(self,  nrows): pass 
+    @abc.abstractmethod
     def setnumberformat(self, row, col, format): pass
+    @abc.abstractmethod
     def setbackground(self, row, col, fillcolor): pass
+    @abc.abstractmethod
     def writerow(self, row, edited): pass
 
-class InplaceOut(OutData): # Note: depends on the Excel representation of OutData
-    def __init__(self,  *args, **kwargs):
-        super(OutData, self).__init__(*args, **kwargs)       
-    def setnumberformat(self, row, col, format):
-        self.ws[row][col].number_format = format     
-    def setbackground(self, row, col, fillcolor):
-        self.ws[row][col].fill = fillcolor
-    def writerow(self, row,  rowdict, edited): 
-        for colname in rowdict.keys():            
-                if edited[colname]: 
-                    col = self.colnumber(colname)
-                    self.setvalue( row, col,  rowdict[colname] )
                     
 class CSVOut(OutData):
     def __init__(self,  *args, **kwargs):
         super(OutData, self).__init__(*args, **kwargs) 
+    @classmethod
+    def fromfile(OutData, fn,  sheetname):
+        x = OutData()
+        x.open(fn,  sheetname)
+        return x
     def outputopen(self, fn):
         self.csvfile = open(fn, 'w')
         self.wr = csv.writer(self.csvfile,  delimiter=";",  quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -304,10 +306,23 @@ class CSVOut(OutData):
         strvals =  [ (x or '') for x in rowdict.values() ]   
         strvals = [str(x) for x in strvals]
         self.wr.writerow( strvals )
+    # TODO: make these actually virtual
+    @abc.abstractmethod
+    def copyheaders(self,  nrows): pass 
+    def setnumberformat(self, row, col, format): pass
+    def setbackground(self, row, col, fillcolor): pass
+    @abc.abstractmethod
+    def writerow(self, row, edited): pass
+
 
 class fastXLSXOut(OutData):
     def __init__(self,  *args, **kwargs):
         super(OutData, self).__init__(*args, **kwargs) 
+    @classmethod
+    def fromfile(fastXLSXOut, fn,  sheetname):
+        x = fastXLSXOut()
+        x.open(fn,  sheetname)
+        return x
     def outputopen(self, fn):
         self.nfn = fn
         self.nwb = openpyxl.Workbook(write_only = True)
@@ -329,4 +344,7 @@ class fastXLSXOut(OutData):
     def close(self):
         self.nwb.save(self.nfn)
         super(OutData, self).close()
+    def setnumberformat(self, row, col, format): pass
+    def setbackground(self, row, col, fillcolor): pass
+
     
