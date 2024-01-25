@@ -17,6 +17,7 @@ from jktools import loadtime,  joinstr,  my2str
 from openpyxl.styles import PatternFill
 import logging
 progname = 'paikkain'
+#version = '2.91'
 
 starttime = time.time()
 
@@ -88,23 +89,22 @@ try:
     log.info( f"Reading configuration file {conffn}"  )
     c = read_TOML_config(conffn) # CONFIG DATA 
 
-    inc = configholder()  # Config for input data files
-    outc = configholder() # Config for output data
-    datac = configholder() # Config for known data 
+    inc_sheetname = c['inputfiles'].get('sheetname', None)
+    inc_first_data_line = c['inputfiles'].get('first_data_line ', 1)
 
-    inc.sheetname = c['inputfiles'].get('sheetname', None)
-    inc.first_data_line = c['inputfiles'].get('first_data_line ', 1)
-
-    datac.keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
-    ksheetname = c['knowndatafiles'].get('sheetname',None)
-    kdfn = Path(c['knowndatafiles'].get('filenames')[0])  # FOR NOW, SUPPORTS ONLY 1 FILE
+    knownd_keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
+    knownd_sheetnames = c['knowndatafiles'].get('sheetname',None)
+    knownd_filenames = [ Path(x) for x in  c['knowndatafiles'].get('filenames') ]  
     cmd_replace = c['knowndatafiles'].get('cmd_replace')
     cmd_append = c['knowndatafiles'].get('cmd_append')
     cmd_nothing = c['knowndatafiles'].get('cmd_nothing')
     outputops = [cmd_replace, cmd_append, cmd_nothing]
     activeops = [cmd_replace, cmd_append]
 
-    pnote = c['outputfiles'].get('transcribernote', "")
+    pnote = c.get('transcribernote', "") 
+    if c.get('transcribernote_appendfilenames', False):
+        pnote += " "
+        pnote += ", ".join((str(x) for x in knownd_filenames) )
     output_marker = c['outputfiles'].get('filename_add')
     if c['outputfiles'].get('add_date_to_note'):
         pnote = pnote + " (%s)" % datetime.date.today()
@@ -132,13 +132,17 @@ try:
     outdata = None
     geodata = None
 
-    # Read geodata file
-    log.info(f"Loading geodata from file {kdfn}")
-    geodata = jksheet.GeoData.fromfile(Path(kdfn), ksheetname)     
-    log.debug("Parsing rules from geodata file headers")
-    rules = geodata.parse_rules(known_test_types) # Parse row matching rules from GeoData file header rows
-    #log.debug(f"Found the following test rules:")
-    for rule in rules: log.info(f"Rule for column {rule.colname}, rule type '{rule.type}'")
+    # Read geodata files
+    for knowdatafn in knownd_filenames:
+        geodatalist = []
+        log.info(f"Loading geodata from file {knowdatafn}")
+        geodata = jksheet.GeoData.fromfile(Path(knowdatafn), knownd_sheetnames)     
+        log.debug("Parsing rules from geodata file headers")
+        rules = geodata.parse_rules(known_test_types) # Parse row matching rules from GeoData file header rows
+        geodatalist.append( geodata )
+        #log.debug(f"Found the following test rules:")
+        for rule in rules: log.info(f"Rule for column {rule.colname}, rule type '{rule.type}'")
+
 except (FileNotFoundError,  jkError) as err: 
     log.critical(f"{err} Exiting.")
     sys.exit()
@@ -154,7 +158,7 @@ for infn in input_files:
             log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
         shutil.copyfile(infn, outfn) # Make a copy of the original file, operate on it
         if outputformat == 'csv':
-            outdata = jksheet.CSVOut.fromfile(outfn, inc.sheetname)
+            outdata = jksheet.CSVOut.fromfile(outfn, inc_sheetname)
             origfn = outfn
             outfn = outfn.with_suffix("out.csv") 
             if outfn.exists(): 
@@ -162,9 +166,9 @@ for infn in input_files:
             outdata.outputopen(outfn)
         # THIS VERSION USE IN-PLACE EXCEL EDITING: KEEPS FORMATTING, BUT IS VERY SLOW
         elif outputformat == 'xlsx': 
-            outdata = jksheet.InplaceOut.fromfile(outfn, inc.sheetname)
+            outdata = jksheet.InplaceOut.fromfile(outfn, inc_sheetname)
         elif outputformat == 'fast-xlsx': 
-            outdata = jksheet.fastXLSXOut.fromfile(outfn, inc.sheetname)
+            outdata = jksheet.fastXLSXOut.fromfile(outfn, inc_sheetname)
             origfn = outfn
             outfn = outfn.with_suffix(".out.xlsx") 
             if outfn.exists(): 
@@ -173,7 +177,7 @@ for infn in input_files:
             
         indata = outdata        
 
-        # Add fields to output table as needed on the basis of geodata file header
+        # Add fields to output table as needed on the basis of geodata file headers
         for colname in geodata.output_column_names(activeops):
             if not outdata.hascolumn(colname):
                 log.info(f"adding column {colname} to output table")
@@ -189,10 +193,10 @@ for infn in input_files:
             original_geodata_col = outdata.colnumber(append_original_geodata_to_column) # Note; this must be last insertion, otherwise we need to update this
             
         # Copy header lines 
-        outdata.copyheaders(inc.first_data_line) # Copy header lines to possible alternative output files
+        outdata.copyheaders(inc_first_data_line) # Copy header lines to possible alternative output files
 
         # Step through input file and process line by line
-        for row in range( inc.first_data_line, indata. nrows +1 ): 
+        for row in range( inc_first_data_line, indata. nrows +1 ): 
             if (row % 10) == 0: log.info(f"Processing row {row}") 
             rowdict = indata.get_row_as_dict(row) 
             outdict = indata.get_row_as_dict(row) 
@@ -219,7 +223,7 @@ for infn in input_files:
                         if colname.lower() not in outdata.lowercolnames: continue                         
                         col = indata.colnumber(colname)
                         oval = indata.getvalue(row, col)  # Value in input data at this position
-                        if my2str(val).strip().lower() == datac.keep: continue
+                        if my2str(val).strip().lower() == knownd_keep: continue
                         # Copy original data to a field in the output file (not copying the output cell data into itself
                         if append_original_geodata_to_column and (col != original_geodata_col):  
                             if oval: originaldata.append( str(indata.getvalue(row, col) ) )
