@@ -1,10 +1,5 @@
 # Current implementation depends on dictionaries keeping their order, which is true in Python3 
 
-# TODO: SHOULD CHECK THAT ALL CELLS IN FIRST 2(3) LINES HAVE SENSIBLE VALUES:
-# (UNIQUE for 1, regular vocab for 2)
-# TODO: Add support for locality text field manipulation even when there are existing coordinate fields
-# TODO:  add support for checking Finnish bioregion names
-# TODO: ADD output format replace_if_previously_empt
 class WriteRow(Exception): pass
 
 # Call example:     jkgeoref setup.ini inputfile.xlsx
@@ -154,26 +149,20 @@ for infn in input_files:
     try:
         # Set up output file by copying in the input file
         outfn = create_output_name(infn, output_marker)        
-        if outfn.exists(): 
-            log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
-        shutil.copyfile(infn, outfn) # Make a copy of the original file, operate on it
+#        if outfn.exists(): 
+#            log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
+ #       shutil.copyfile(infn, outfn) # Make a copy of the original file, operate on it
         if outputformat == 'csv':
-            outdata = jksheet.CSVOut.fromfile(outfn, inc_sheetname)
+            outdata = jksheet.CSVOut.fromfile(infn, inc_sheetname) # Copy existing data
             origfn = outfn
             outfn = outfn.with_suffix("out.csv") 
-            if outfn.exists(): 
-                log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
-            outdata.outputopen(outfn)
-        # THIS VERSION USE IN-PLACE EXCEL EDITING: KEEPS FORMATTING, BUT IS VERY SLOW
-        elif outputformat == 'xlsx': 
-            outdata = jksheet.InplaceOut.fromfile(outfn, inc_sheetname)
         elif outputformat == 'fast-xlsx': 
-            outdata = jksheet.fastXLSXOut.fromfile(outfn, inc_sheetname)
+            outdata = jksheet.fastXLSXOut.fromfile(infn, inc_sheetname)
             origfn = outfn
             outfn = outfn.with_suffix(".out.xlsx") 
-            if outfn.exists(): 
-                log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
-            outdata.outputopen(outfn)
+        if outfn.exists(): 
+            log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
+        outdata.outputopen(outfn)
             
         indata = outdata        
 
@@ -193,7 +182,7 @@ for infn in input_files:
             original_geodata_col = outdata.colnumber(append_original_geodata_to_column) # Note; this must be last insertion, otherwise we need to update this
             
         # Copy header lines 
-        outdata.copyheaders(inc_first_data_line) # Copy header lines to possible alternative output files
+        outdata.copyheaders(inc_first_data_line) # Copy header lines preceding inc_first_data_line to possible alternative output files
 
         # Step through input file and process line by line
         for row in range( inc_first_data_line, indata. nrows +1 ): 
