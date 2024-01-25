@@ -1,15 +1,10 @@
 # Current implementation depends on dictionaries keeping their order, which is true in Python3 
 
-# TODO: SHOULD CHECK THAT ALL CELLS IN FIRST 2(3) LINES HAVE SENSIBLE VALUES:
-# (UNIQUE for 1, regular vocab for 2)
-# TODO: Add support for locality text field manipulation even when there are existing coordinate fields
-# TODO:  add support for checking Finnish bioregion names
-# TODO: ADD output format replace_if_previously_empt
 class WriteRow(Exception): pass
 
 # Call example:     jkgeoref setup.ini inputfile.xlsx
 from pathlib import Path
-import sys,  shutil,  atexit,  configparser,  datetime,  time,  argparse,  os
+import sys,  shutil,  atexit,  tomllib,  datetime,  time,  argparse,  os
 import jksheet
 from jkerror import jkError
 from jktest import known_test_types 
@@ -17,6 +12,10 @@ from jktools import loadtime,  joinstr,  my2str
 from openpyxl.styles import PatternFill
 import logging
 progname = 'paikkain'
+#version = '2.91'
+
+starttime = time.time()
+
 
 def createlogger(fn):
     logger = logging.getLogger(progname)
@@ -30,8 +29,6 @@ def createlogger(fn):
     logger.addHandler(ch)   
     return logger
 
-starttime = time.time()
-
 def onexit(): 
     log.info("Done")
     if ( ('outdata' in dir()) and  outdata ) : outdata.close()
@@ -40,8 +37,6 @@ def onexit():
     endtime = time.time()
     log.info(f"Time spent: %-.2f s" % (endtime - starttime) )
 #    input("Hit enter to end process: ")
-
-atexit.register(onexit)
 
 def dict_has_content_in(tdict,  searchkeys):
     for dc in searchkeys:
@@ -54,142 +49,127 @@ def row_has_date(row):
             loadtime( n ); return True # Return true is conversion to date worked
         except (ValueError,  KeyError):  pass            
     return False    
-    
-# Select one of several matching geodata lines
-# Logic: 1. check that only date elements differ 2. prefer match with time elements.
-#def match_selector(geodata,  matchrows,  rowdict,  datecolumns=[]):
-#    datecolumns = ['MYGathering[0][MYDateBegin]','MYGathering[0][MYDateEnd]' ]
-#    datecolumns = [x.lower() for x in datecolumns]
-#    # Check that userdata has at least one date: otherwise cannot select
-#    userhasdate = dict_has_content_in(rowdict,  datecolumns) 
-##    if len(matchrows) > 2: print(f"userhasdate {userhasdate}")
-#    no_date_rules_row = None
-#    for rowi in matchrows:
-#        hasdate = row_has_date(geodata.get_row_values(rowi))
-#        if not hasdate: #
-#            # Several matching rules with no date information: cannot sort these out, return full list as-is
-#            if no_date_rules_row is not None: return matchrows
-#            else: no_date_rules_row = rowi
-##    if len(matchrows) > 2: print(f"no_date_rules_row {no_date_rules_row}")
-#    if not userhasdate: 
-#        if ( no_date_rules_row is not None): return [no_date_rules_row]
-#        else: return matchrows
-#    else: # User provided date: pick matching line with validity timing data
-#        matchrows.remove(no_date_rules_row)
-#        return matchrows
 
 def create_output_name(infn, addition):
     infn = Path(infn)
     return infn.with_suffix(f".{addition}" + infn.suffix)
 
+def read_TOML_config(confname):
+    """Read a configuration file in TOML. Raise a jkError on error."""    
+    if not conffn.is_file(): raise jkError(f"Config file '{conffn.absolute()}' does not exist or if not readable.")    
+    try:
+        with conffn.open("rb") as f: config = tomllib.load(f)
+    except tomllib.TOMLDecodeError as msg: raise jkError(f"Config file '{conffn.absolute()}' parsing failed: f{msg}.")
+    return config    
+
+class configholder: pass # a dummy class to store config data as static properties
 #  ------------------ main script
-# Read command line
-ap =argparse.ArgumentParser(description='Georeferense Excel files with geodata information')
-ap.add_argument('conffn', metavar='conffn', nargs=1, help='configuration file name')
-ap.add_argument('input_files', metavar='input_files', nargs='+', help='input data file(s)')
-args = ap.parse_args()
+atexit.register(onexit)
 
-executedir = Path(sys.argv[0]).parent
-log = createlogger( executedir / Path(progname + ".log") )
-log.info(f"Starting {progname} on {datetime.datetime.now()}")
-
-input_files  = [Path(x) for x in args.input_files]
-
-# Read parameters from config file
-conffn = args.conffn[0]
-log.info( f"Reading configuration file {conffn}"  )
-config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation() )
-config.read(conffn, 'UTF-8')
-
-insheetname = config.get('inputfiles', 'datasheetname', fallback=None)
-input_first_data_line = config['inputfiles'].getint('first_data_line')
-keep_original_data_marker = config['inputfiles']['keep_original_data_marker']
-keep_original_data_marker = keep_original_data_marker.lower()
-
-gdsheetname = config.get('geodatafile', 'sheetname', fallback=None)
-gdfn = Path(config['geodatafile']['filename'])
-
-
-cmd_replace = config['geodatafile']['cmd_replace']
-cmd_append = config['geodatafile']['cmd_append']
-cmd_nothing = config['geodatafile']['cmd_nothing']
-outputops = [cmd_replace, cmd_append, cmd_nothing]
-activeops = [cmd_replace, cmd_append]
-pnote = config.get('outputfiles', 'transcribernote', fallback = "")
-output_marker = config['outputfiles']['filename_add']
-if config['outputfiles'].getboolean('add_date_to_note'):
-    pnote = pnote + " (%s)" % datetime.date.today()
-outputformat = config['outputfiles']['output_format']
-outputformat = outputformat.lower()
-if outputformat not in ['csv', 'xlsx',  'fast-xlsx']: 
-    log.critical(f"Unknown output format: {outputformat.upper()}"); sys.exit()
-    
-log.info(f"Output format: {outputformat.upper()}")
-
-if pnote: pnotecolname = config['outputfiles']['transcribernotefield']
-itemsep = config['outputfiles']['data_append_connector'] + " "
-replacefillcolor = config['outputfiles']['replace_fillcolor']
-appendfillcolor = config['outputfiles']['append_fillcolor']
-new_field_insert_point = config['outputfiles'].getint('new_column_insertion_position')
-
-original_geodata_header = config['outputfiles']['original_geodata_to_column_header']
-append_original_geodata_to_column = config.get('outputfiles', 'append_original_geodata_to_column', fallback=None)
-
-skip_if_content_columnnames = []
-for n in range(1, 10): 
-    colname = 'skip_if_nonempty%i' % n
-    skipn = config['inputfiles'].get(colname)
-    if skipn: skip_if_content_columnnames.append(skipn.lower())
-
-# Colour objects for XLS cell background setting
-replaceFill = PatternFill(start_color=replacefillcolor, end_color= replacefillcolor, fill_type='solid')
-appendFill = PatternFill(start_color=appendfillcolor, end_color= appendfillcolor, fill_type='solid')
-
-outdata = None
-geodata = None
-
-# Read geodata file
+# READ CONFIGURATION AND KNOWN DATA FILES
 try: 
-    log.info(f"Loading geodata from file {gdfn}")
-    geodata = jksheet.GeoData.fromfile(Path(gdfn), gdsheetname)     
-except (FileNotFoundError,  jkError) as err: 
-    log.critical(f"{err} Exiting")
-    sys.exit()
-log.debug("Parsing rules from geodata file headers")
-rules = geodata.parse_rules(known_test_types) # Parse row matching rules from GeoData file header rows
-#log.debug(f"Found the following test rules:")
-for rule in rules: log.info(f"Rule for column {rule.colname}, rule type '{rule.type}'")
+    # Read command line
+    ap =argparse.ArgumentParser(description='Georeferense Excel files with geodata information')
+    ap.add_argument('conffn', metavar='conffn', nargs=1, help='configuration file name')
+    ap.add_argument('input_files', metavar='input_files', nargs='+', help='input data file(s)')
+    args = ap.parse_args()
 
+    executedir = Path(sys.argv[0]).parent
+    log = createlogger( executedir / Path(progname + ".log") )
+    log.info(f"Starting {progname} on {datetime.datetime.now()}")
+    input_files  = [Path(x) for x in args.input_files]
+
+    # Read parameters from config file
+    conffn = Path(args.conffn[0]) 
+    log.info( f"Reading configuration file {conffn}"  )
+    c = read_TOML_config(conffn) # CONFIG DATA 
+
+    inc_sheetname = c['inputfiles'].get('sheetname', None)
+    inc_first_data_line = c['inputfiles'].get('first_data_line ', 1)
+
+    knownd_keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
+    knownd_sheetnames = c['knowndatafiles'].get('sheetname',None)
+    knownd_filenames = [ Path(x) for x in  c['knowndatafiles'].get('filenames') ]  
+    try:
+        cmd_replace = c['knowndatafiles']['cmd_replace']
+        cmd_append = c['knowndatafiles']['cmd_append']
+        cmd_fillempty = c['knowndatafiles']['cmd_fillempty']
+        cmd_nothing = c['knowndatafiles']['cmd_nothing']
+    except LookupError as msg: raise jkError(f"Command names must be defined in the config file: f{msg}.")
+    outputops = [cmd_replace, cmd_append, cmd_fillempty, cmd_nothing]
+    activeops = [cmd_replace, cmd_append, cmd_fillempty]
+
+    pnote = c['outputfiles'].get('transcribernote', "") 
+    if c['outputfiles'].get('transcribernote_appendfilenames', False):
+        pnote += " "
+        pnote += ", ".join((str(x) for x in knownd_filenames) )
+    output_marker = c['outputfiles'].get('filename_add')
+    if c['outputfiles'].get('add_date_to_note'):
+        pnote = pnote + " (%s)" % datetime.date.today()
+    outputformat = c['outputfiles'].get('output_format')
+    outputformat = outputformat.lower()
+    if outputformat not in ['csv', 'xlsx',  'fast-xlsx']: 
+        log.critical(f"Unknown output format: {outputformat.upper()}"); sys.exit()
+        
+    log.info(f"Output format: {outputformat.upper()}")
+
+    if pnote: pnotecolname = c['outputfiles'].get('transcribernotefield')
+    itemsep = c['outputfiles'].get('data_append_connector') + " "
+    replacefillcolor = c['outputfiles'].get('replace_fillcolor')
+    appendfillcolor = c['outputfiles'].get('append_fillcolor')
+    new_field_insert_point = c['outputfiles'].get('new_column_insertion_position')
+
+    original_geodata_header = c['outputfiles'].get('original_geodata_to_column_header')
+    append_original_geodata_to_column = c['outputfiles'].get('append_original_geodata_to_column',None)
+    skip_if_content_columnnames = c['inputfiles'].get('skip_if_nonempty')
+
+    # Colour objects for XLS cell background setting
+    replaceFill = PatternFill(start_color=replacefillcolor, end_color= replacefillcolor, fill_type='solid')
+    appendFill = PatternFill(start_color=appendfillcolor, end_color= appendfillcolor, fill_type='solid')
+
+    outdata = None
+    geodata = None
+
+    # Read geodata files
+    for knowdatafn in knownd_filenames:
+        geodatalist = []
+        log.info(f"Loading geodata from file {knowdatafn}")
+        geodata = jksheet.GeoData.fromfile(Path(knowdatafn), knownd_sheetnames)     
+        log.debug("Parsing rules from geodata file headers")
+        rules = geodata.parse_rules(known_test_types) # Parse row matching rules from GeoData file header rows
+        geodatalist.append( geodata )
+        #log.debug(f"Found the following test rules:")
+        for rule in rules: log.info(f"Rule for column {rule.colname}, rule type '{rule.type}'")
+
+except (FileNotFoundError,  jkError) as err: 
+    log.critical(f"{err} Exiting.")
+    sys.exit()
+
+# PROCESS INPUT FILES 
 for infn in input_files:   
     # Read user data file
     log.info(f"\n\nProcessing file {infn}") 
     try:
         # Set up output file by copying in the input file
         outfn = create_output_name(infn, output_marker)        
-        if outfn.exists(): 
-            log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
-        shutil.copyfile(infn, outfn) # Make a copy of the original file, operate on it
+#        if outfn.exists(): 
+#            log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
+ #       shutil.copyfile(infn, outfn) # Make a copy of the original file, operate on it
         if outputformat == 'csv':
-            outdata = jksheet.CSVOut.fromfile(outfn, insheetname)
+            outdata = jksheet.CSVOut.fromfile(infn, inc_sheetname) # Copy existing data
             origfn = outfn
             outfn = outfn.with_suffix("out.csv") 
-            if outfn.exists(): 
-                log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
-            outdata.outputopen(outfn)
-        # THIS VERSION USE IN-PLACE EXCEL EDITING: KEEPS FORMATTING, BUT IS VERY SLOW
-        elif outputformat == 'xlsx': 
-            outdata = jksheet.InplaceOut.fromfile(outfn, insheetname)
         elif outputformat == 'fast-xlsx': 
-            outdata = jksheet.fastXLSXOut.fromfile(outfn, insheetname)
+            outdata = jksheet.fastXLSXOut.fromfile(infn, inc_sheetname)
             origfn = outfn
             outfn = outfn.with_suffix(".out.xlsx") 
-            if outfn.exists(): 
-                log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
-            outdata.outputopen(outfn)
+        if outfn.exists(): 
+            log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
+        outdata.outputopen(outfn)
             
         indata = outdata        
 
-        # Add fields to output table as needed on the basis of geodata file header
+        # Add fields to output table as needed on the basis of geodata file headers
         for colname in geodata.output_column_names(activeops):
             if not outdata.hascolumn(colname):
                 log.info(f"adding column {colname} to output table")
@@ -205,10 +185,10 @@ for infn in input_files:
             original_geodata_col = outdata.colnumber(append_original_geodata_to_column) # Note; this must be last insertion, otherwise we need to update this
             
         # Copy header lines 
-        outdata.copyheaders(input_first_data_line) # Copy header lines to possible alternative output files
+        outdata.copyheaders(inc_first_data_line) # Copy header lines preceding inc_first_data_line to possible alternative output files
 
         # Step through input file and process line by line
-        for row in range( input_first_data_line, indata. nrows +1 ): 
+        for row in range( inc_first_data_line, indata. nrows +1 ): 
             if (row % 10) == 0: log.info(f"Processing row {row}") 
             rowdict = indata.get_row_as_dict(row) 
             outdict = indata.get_row_as_dict(row) 
@@ -235,14 +215,14 @@ for infn in input_files:
                         if colname.lower() not in outdata.lowercolnames: continue                         
                         col = indata.colnumber(colname)
                         oval = indata.getvalue(row, col)  # Value in input data at this position
-                        if my2str(val).strip().lower() == keep_original_data_marker: continue
+                        if my2str(val).strip().lower() == knownd_keep: continue
                         # Copy original data to a field in the output file (not copying the output cell data into itself
                         if append_original_geodata_to_column and (col != original_geodata_col):  
                             if oval: originaldata.append( str(indata.getvalue(row, col) ) )
                         oper = geodata.get_output_action_for_column(colname, outputops) 
                         if oper not in outputops:
                             continue # Skip column with actions that are not output operations
-                        elif oper == cmd_replace:
+                        elif (oper == cmd_replace) or ( oper == cmd_fillempty and not outdict[colname] ):
                             outdict[colname] = val
                             edited[colname] = True
                             outdata.setbackground(row, col, replaceFill)

@@ -1,0 +1,16 @@
+3.0 path to
+-----------
+- Code cleanup
+- Add support for CSV files
+  -- needs to specify encoding, CSV file features in INI file
+- add support for ignored characters list in config file
+
+Minor improvements:
+Known data reader: 
+  - accept multiple known_data files
+  - accept multiple formats
+
+paikkain.py:
+# TODO: SHOULD CHECK THAT ALL CELLS IN FIRST 2(3) LINES HAVE SENSIBLE VALUES:
+# (UNIQUE for 1, regular vocab for 2)
+# TODO: Add support for locality text field manipulation even when there are existing coordinate fields?
