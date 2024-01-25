@@ -1,0 +1,7 @@
+3.0 path to
+-----------
+- Delete support for the too slow in-place excel, which needed a lot of complexity
+- Code cleanup
+- Add support for CSV files
+  -- needs to specify encoding, CSV file features in INI file
+- convert to use TOML for config scripts
