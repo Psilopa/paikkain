@@ -245,7 +245,7 @@ class OutData(jkXLSfilesheet, abc.ABC):
 
     def save(self):
         if self.wb: self.wb.save( self.fn )
-        else: raise jkError(f"Save failed: no file data available to save")
+        else: raise jkError("Save failed: no file data available to save")
 
     # Column operations
     def addcolumn(self, name, new_column_insert_index=1):
@@ -311,13 +311,8 @@ class CSVOut(OutData):
         strvals = [str(x) for x in strvals]
         self.wr.writerow( strvals )
     # TODO: make these actually virtual
-    @abc.abstractmethod
-    def copyheaders(self,  nrows): pass 
     def setnumberformat(self, row, col, format): pass
     def setbackground(self, row, col, fillcolor): pass
-    @abc.abstractmethod
-    def writerow(self, row, edited): pass
-
 
 class fastXLSXOut(OutData):
     def __init__(self,  *args, **kwargs):

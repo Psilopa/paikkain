@@ -4,17 +4,19 @@ class WriteRow(Exception): pass
 
 # Call example:     jkgeoref setup.ini inputfile.xlsx
 from pathlib import Path
-import sys,  shutil,  atexit,  tomllib,  datetime,  time,  argparse,  os
+import sys,   atexit,  tomllib,  datetime,  time,  argparse,  os
 import jksheet
 from jkerror import jkError
 from jktest import known_test_types 
 from jktools import loadtime,  joinstr,  my2str
 from openpyxl.styles import PatternFill
+import iter
 import logging
 progname = 'paikkain'
 #version = '2.91'
 
 starttime = time.time()
+log = None # Overidden by the createlogger() call
 
 
 def createlogger(fn):
@@ -30,13 +32,12 @@ def createlogger(fn):
     return logger
 
 def onexit(): 
-#    log.info("Done")
+    if log: log.info("Done")
     if ( ('outdata' in dir()) and  outdata ) : outdata.close()
     if ( ('geodata' in dir()) and  geodata ) : geodata.close()
     if ( ('indata' in dir()) and  indata ) : indata.close()
     endtime = time.time()
-#    log.info(f"Time spent: %-.2f s" % (endtime - starttime) )
-#    input("Hit enter to end process: ")
+    if log: log.info("Time spent: %-.2f s" % (endtime - starttime) )
 
 def dict_has_content_in(tdict,  searchkeys):
     for dc in searchkeys:
@@ -191,7 +192,7 @@ if __name__ == '__main__':
             outdata.copyheaders(inc_first_data_line) # Copy header lines preceding inc_first_data_line to possible alternative output files
 
             # Step through input file and process line by line
-            for row in range( inc_first_data_line, indata. nrows +1 ): 
+            for row in range( inc_first_data_line, indata.nrows +1 ): 
                 if (row % 10) == 0: log.info(f"Processing row {row}") 
                 rowdict = indata.get_row_as_dict(row) 
                 outdict = indata.get_row_as_dict(row) 
