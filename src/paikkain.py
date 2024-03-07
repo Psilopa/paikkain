@@ -4,11 +4,11 @@ class WriteRow(Exception): pass
 
 # Call example:     jkgeoref setup.ini inputfile.xlsx
 from pathlib import Path
-import sys,   atexit,  tomllib,  datetime,  time,  argparse,  re
+import sys,   atexit,  tomllib,  datetime,  time,  argparse
 import jksheet
 from jkerror import jkError
 from jktest import known_test_types 
-from jktools import loadtime,  joinstr,  my2str
+from jktools import joinstr,  my2str
 from openpyxl.styles import PatternFill
 import logging
 progname = 'paikkain'
@@ -18,7 +18,6 @@ starttime = time.time()
 log = None # Overidden by the createlogger() call
 op_replaced = 1
 op_appended = 2
-NEWCOLUMN = "NEW COLUMN"
 
 def createlogger(fn):
     logger = logging.getLogger(progname)
@@ -39,18 +38,6 @@ def onexit():
     if ( ('indata' in dir()) and  indata ) : indata.close()
     endtime = time.time()
     if log: log.info("Time spent: %-.2f s" % (endtime - starttime) )
-
-def dict_has_content_in(tdict,  searchkeys):
-    for dc in searchkeys:
-        if tdict[dc]: return True 
-        else: return False
-    
-def row_has_date(row):
-    for n in row:
-        try:  
-            loadtime( n ); return True # Return true is conversion to date worked
-        except (ValueError,  KeyError):  pass            
-    return False    
 
 def create_output_name(infn, addition):
     infn = Path(infn)
@@ -159,8 +146,9 @@ if __name__ == '__main__':
         # Read user data file
         log.info(f"\n\nProcessing file {infn}") 
         try:
-            # READ INPUT DATA
-            indata = jksheet.fastXLSXOut.fromfile(infn, inc_sheetname)            
+            # OPEN INPUT DATA
+            indata = jksheet.roExcel(infn, inc_first_data_line)            
+            # SETUP FOR OUTPUT FILE
             outfn = create_output_name(infn, output_marker)        
             if outputformat == 'fast-xlsx': 
                 outfn = outfn.with_suffix(".out.xlsx") 
@@ -175,62 +163,62 @@ if __name__ == '__main__':
             if outfn.exists(): 
                 log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
 
-            # Add colums to output table
-            for name in indata.get_row_values(1)[::-1]:  # Reverse order to as insertion re-reverses them
-                    outdata.addcolumn(1,  [name])                
+            #HANDLE EXTRA HEADER ROWS IN INPUT & OUTPUT (AND DATA), IF ANY 
+            firstrow = indata.next_row()
             for i in range(2, inc_first_data_line): 
-#                    Copy secondary header lines
-                    outdata.next() # Just skip a line for now
+                    pass
+#                    nextrow = indata.next_row()
+#                    outdata.next() # Just skip a line for now
+            # ADD  COLUMNS INTO OUTPUT IF CONFIG OR KNOWN DATA CONTAIN COLS NOT IN INPUT
+            for name in firstrow[::-1]:  # Grab first row. Reverse order to as insertion re-reverses them
+                    outdata.addcolumn(1,  [name])                
             for colname in geodata.output_column_names(activeops)[::-1]:  # Reverse order to as insertion re-reverses them
                 if not outdata.hascolumn(colname):
                     log.info(f"adding column {colname} to output table")
-                    outdata.addcolumn(new_field_insert_point,  [colname, NEWCOLUMN])
+                    outdata.addcolumn(new_field_insert_point,  [colname])
             if pnotecolname and pnote:
                 if not outdata.hascolumn(pnotecolname):
                     log.info(f"adding column {pnotecolname} to output table")
-                    outdata.addcolumn(new_field_insert_point, [pnotecolname, NEWCOLUMN])
+                    outdata.addcolumn(new_field_insert_point, [pnotecolname])
             if append_original_geodata_to_column:
                 if not outdata.hascolumn(append_original_geodata_to_column):
                     log.info(f"adding column {append_original_geodata_to_column} to output table")
-                    outdata.addcolumn(new_field_insert_point ,  [append_original_geodata_to_column, NEWCOLUMN]) 
-#                original_geodata_col = outdata.colnumber(append_original_geodata_to_column) # Note; this must be last insertion, otherwise we need to update this
+                    outdata.addcolumn(new_field_insert_point ,  [append_original_geodata_to_column]) 
 
-            # Copy additional header lines, if any
-            # TODO
-                
             # Step through input file and process line by line
-            for row in range( inc_first_data_line, indata.nrows +1 ): 
-                if (row % 10) == 0: log.info(f"Processing row {row}") 
-                outdict = indata.get_row_as_dict(row) 
+            rowcount = inc_first_data_line
+            while not indata.end(): 
+                if (rowcount % 10) == 0: log.info(f"Processing row {rowcount}") 
+                rowcount += 1
+                origdict = indata.next_row_as_dict() 
+                outdict =  origdict.copy()
                 edited = { k: False for k in  outdict.keys() } # Edit status for each row value
                 try: 
                     # If line has content in specified columns already, skip to WriteRow
                     for skipname in skip_if_content_columnnames: 
-                        if not indata.isempty_by_colname(row,  skipname): 
+                        val = origdict.get(skipname,"")                        
+                        if val.strip(): # Has some content
                             raise WriteRow 
-                    matchrows = geodata.find_matches(outdict,  rules, ignorechars)
+                    matchrows = geodata.find_matches(origdict,  rules, ignorechars)
         #            if len(matchrows) > 1: matchrows = match_selector(geodata,  matchrows,  rowdict)
                     nmatch = len(matchrows)
                     if nmatch == 0:  
                         raise WriteRow
                     if nmatch > 1:  
-                        log.debug(f"Found multiple matches for inputrow {row}: {matchrows}. Check geodata source file. Skipping row")
+                        log.debug(f"Found multiple matches for inputrow {rowcount}: {matchrows}. Check geodata source file. Skipping row")
                         raise WriteRow
                     # OK, so we have exactly one match
-                    originaldata = []
+                    originaldata = [] # Kept to store original data from cells that may be replaced (for later reporting in the output)
                     mrow = matchrows[0] # index of matching row
                     match = geodata.get_row_as_dict( mrow )
                     for colname,val in match.items():  # Iterate over columns in match item
+                        if my2str(val).strip().lower() == knownd_keep: continue # Overrule marker in geodata
                         # If column name is not in outdata, it is not an active output field name and can be ignored
                         if colname.lower() not in outdata.lowercolnames: continue        
-                        if colname.lower()  in indata.lowercolnames: # column not in indata, can use always use found data           
-                            col = indata.colnumber(colname)
-                            oval = indata.getvalue(row, col)  # Value in input data at this position
-                        else: oval = ""
-                        if my2str(val).strip().lower() == knownd_keep: continue # Overrule marker in geodata
                         # Copy original data to a field in the output file (not copying the output cell data into itself
                         if append_original_geodata_to_column and (colname != append_original_geodata_to_column):  
-                            if oval: originaldata.append( str(indata.getvalue(row, col) ) )
+                            oval = origdict.get(colname,"")  
+                            if oval: originaldata.append(oval)
                         oper = geodata.get_output_action_for_column(colname, outputops) 
                         if oper not in outputops:
                             continue # Skip column with actions that are not output operations

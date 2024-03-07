@@ -203,128 +203,8 @@ class GeoData(jkXLSfilesheet):
         for i in range(len(self.rulerow)):
             if self.rulerow[i] in actions: names.append(self.origcolnames[i])
         return names
-        
-                
-# BASIC INPUT FILE CLASS
-class InputData(jkXLSfilesheet, abc.ABC): # Currently a thin wrapper around Excel sheets, but may change
-    def __init__(self,  *args, **kwargs):
-        super(jkXLSfilesheet, self).__init__(*args, **kwargs)        
-    @classmethod
-    def fromfile(InputData, fn,  sheetname):
-        x = InputData()
-        x.open(fn,  sheetname)
-        return x
 
-
-# BASIC OUTPUT FILE CLASS
-class OutData(jkXLSfilesheet, abc.ABC):
-    def __init__(self,  *args, **kwargs):
-        super(jkXLSfilesheet, self).__init__(*args, **kwargs)        
-
-    def save(self):
-        if self.wb: self.wb.save( self.fn )
-        else: raise jkError("Save failed: no file data available to save")
-
-    # Column operations
-    def addcolumn(self, name, new_column_insert_index=1):
-        name = name.strip()
-        self.ws.insert_cols(new_column_insert_index)
-        self.setvalue(1, new_column_insert_index -1,  name)
-        self.ncols = self.ws.max_column
-        self._valuegrid_from_data()
-        self._updateheadervars()
-        self._indexcolumnnames()
-        
-    # Cell operations
-    def setvalue(self, row, col,  val):
-        self.ws[row][col].value = val
-        self.valuegrid[row][col] = val
-        
-    def setmultivalue(self, row, col, val, sep=";"):
-        # Flattens value for the Excel sheet representation, if value is a list of string
-        self.ws[row][col].value = sep.join(val) or ""
-        self.valuegrid[row][col] = val
-        
-    def replacevalue(self, row, col, val):
-        self.setnumberformat(row, col, '@')
-        self.setvalue(row, col,  val)
-    
-    def appendvalue(self, row, col, val,  sep=", "): 
-        self.setnumberformat(row, col, '@')
-        if not val: return  # No nothing for None or "" as input
-        if self.isempty(row, col): self.setvalue(row, col,  val)
-        else: 
-            oldval = str( self.getvalue(row, col) )
-            newval = sep.join( [oldval , val]  ) 
-            self.setvalue(row, col,  newval)
-
-    # Override thesein subclasses, if operation is meaningful
-    # TODO: make these actually virtual
-    @abc.abstractmethod
-    def copyheaders(self,  nrows): pass 
-    @abc.abstractmethod
-    def setnumberformat(self, row, col, format): pass
-    @abc.abstractmethod
-    def setbackground(self, row, col, fillcolor): pass
-    @abc.abstractmethod
-    def writerow(self, row, edited): pass
-
-                    
-class CSVOut(OutData):
-    def __init__(self,  *args, **kwargs):
-        super(OutData, self).__init__(*args, **kwargs) 
-    @classmethod
-    def fromfile(OutData, fn,  sheetname):
-        x = OutData()
-        x.open(fn,  sheetname)
-        return x
-    def outputopen(self, fn):
-        self.csvfile = open(fn, 'w')
-        self.wr = csv.writer(self.csvfile,  delimiter=";",  quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    def copyheaders(self,  nrows): 
-        for i in range(1, nrows):
-            self.wr.writerow( self.get_row_values(i) )
-    def writerow(self, row,  rowdict, edited): 
-        strvals =  [ (x or '') for x in rowdict.values() ]   
-        strvals = [str(x) for x in strvals]
-        self.wr.writerow( strvals )
-    # TODO: make these actually virtual
-    def setnumberformat(self, row, col, format): pass
-    def setbackground(self, row, col, fillcolor): pass
-
-class fastXLSXOut(OutData):
-    def __init__(self,  *args, **kwargs):
-        super(OutData, self).__init__(*args, **kwargs) 
-    @classmethod
-    def fromfile(fastXLSXOut, fn,  sheetname):
-        x = fastXLSXOut()
-        x.open(fn,  sheetname)
-        return x
-    def outputopen(self, fn):
-        self.nfn = fn
-        self.nwb = openpyxl.Workbook(write_only = True)
-        self.nws = self.nwb.create_sheet()
-    def copyheaders(self,  nrows): 
-        for i in range(1, nrows):
-            vals = ( str(x) for x in self.get_row_values(i)  )
-            self.nws.append(vals)
-#    def _writerow(self, row): 
-#        self.nws.append(row)
-    def writerow(self, row,  rowdict, edited): 
-        cellrow = []
-        for k in rowdict.keys():            
-            cell = openpyxl.cell.WriteOnlyCell(self.nws, value= rowdict[k])
-            cell.number_format = '@' # TEXT
-            if edited[k]:  cell.fill = editedFill               
-            cellrow.append(cell)
-        self.nws.append(cellrow)    
-    def close(self):
-        self.nwb.save(self.nfn)
-        super(OutData, self).close()
-    def setnumberformat(self, row, col, format): pass
-    def setbackground(self, row, col, fillcolor): pass
-
-    
+   
     
 # ------------------NEW CODE BELOW THIS ------------------
 
@@ -339,7 +219,7 @@ class jkExcel(abc.ABC):
         self.fp = Path(filename)
         self._name2col = {} 
         self._lowern2col = {} # Should use lowercase column names
-        self.crow = first_data_line # Current row: skip the first two header lines
+        self.crow = 1 # Current row
         self.wb = self._openwb()
         self.sheet = self.wb.active 
     @property
@@ -376,14 +256,23 @@ class roExcel(jkExcel):
         super().__init__(filename,first_data_line)
         self._update_name2column()
     def _openwb(self): 
-        return openpyxl.load_workbook(self.fp, read_only=True)
+        wb = openpyxl.load_workbook(self.fp) #, read_only=True
+        self.rows = wb.active.values
+        return wb
+    def next_row(self):
+        self.next()
+        return next(self.rows)
+    def next_row_as_dict(self):
+        row = next(self.rows)
+        self.next()
+        return { k:v for (k,v) in zip(self.lowercolnames,row) }
 #    def _getcell(self,colno,rowno): # Get value
 #        return self.sheet.cell(column=colno,row=rowno).value 
 #    def _getncell(self,colname,rowno): # Get value by column name
 #        colno = self.name2col[colname]
 #        return self._getcell(colno,rowno)
-#   def iterget(self,colno): return self._getcell(colno,self.crow)
-#    def iternget(self,colname): return self._getncell(colname,self.crow)
+#   def iget(self,colno): return self._getcell(colno,self.crow)
+#    def inget(self,colname): return self._getncell(colname,self.crow)
     
 # --------------------------- OUTPUT FILES ---------------------------
 class woExcel(jkExcel):
