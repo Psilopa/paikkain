@@ -4,20 +4,21 @@ class WriteRow(Exception): pass
 
 # Call example:     jkgeoref setup.ini inputfile.xlsx
 from pathlib import Path
-import sys,   atexit,  tomllib,  datetime,  time,  argparse,  os
+import sys,   atexit,  tomllib,  datetime,  time,  argparse,  re
 import jksheet
 from jkerror import jkError
 from jktest import known_test_types 
 from jktools import loadtime,  joinstr,  my2str
 from openpyxl.styles import PatternFill
-import iter
 import logging
 progname = 'paikkain'
-#version = '2.91'
+version = '2.92'
 
 starttime = time.time()
 log = None # Overidden by the createlogger() call
-
+op_replaced = 1
+op_appended = 2
+NEWCOLUMN = "NEW COLUMN"
 
 def createlogger(fn):
     logger = logging.getLogger(progname)
@@ -61,9 +62,15 @@ def read_TOML_config(confname):
     try:
         with conffn.open("rb") as f: config = tomllib.load(f)
     except tomllib.TOMLDecodeError as msg: raise jkError(f"Config file '{conffn.absolute()}' parsing failed: f{msg}.")
+    # UGLY HARDCODED COMPONENT REPLACEMENT!
+    pm = config["programname"]
+    ver = config["version"]
+    file = config["knowndatafiles"]["filenames"][0]    
+    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("{programname}", pm)
+    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("{version}", ver)
+    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("{knowndatafiles:filenames}", file)    
     return config    
 
-class configholder: pass # a dummy class to store config data as static properties
 #  ------------------ main script
 atexit.register(onexit)
 
@@ -87,12 +94,11 @@ if __name__ == '__main__':
         c = read_TOML_config(conffn) # CONFIG DATA 
 
         inc_sheetname = c['inputfiles'].get('sheetname', None)
-        inc_first_data_line = c['inputfiles'].get('first_data_line ', 1)
+        inc_first_data_line = c['inputfiles'].get('first_data_line', 2)
         ignorechars = c.get('ignore_in_comparison',"")
 
         knownd_keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
         knownd_sheetnames = c['knowndatafiles'].get('sheetname',None)
-        print(c['knowndatafiles'].get('filenames') )
         knownd_filenames = [ Path(x) for x in  c['knowndatafiles'].get('filenames') ]  
         try:
             cmd_replace = c['knowndatafiles']['cmd_replace']
@@ -130,7 +136,6 @@ if __name__ == '__main__':
         # Colour objects for XLS cell background setting
         replaceFill = PatternFill(start_color=replacefillcolor, end_color= replacefillcolor, fill_type='solid')
         appendFill = PatternFill(start_color=appendfillcolor, end_color= appendfillcolor, fill_type='solid')
-
         outdata = None
         geodata = None
 
@@ -154,55 +159,56 @@ if __name__ == '__main__':
         # Read user data file
         log.info(f"\n\nProcessing file {infn}") 
         try:
-            # Set up output file by copying in the input file
+            # READ INPUT DATA
+            indata = jksheet.fastXLSXOut.fromfile(infn, inc_sheetname)            
             outfn = create_output_name(infn, output_marker)        
-    #        if outfn.exists(): 
-    #            log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
-     #       shutil.copyfile(infn, outfn) # Make a copy of the original file, operate on it
-            if outputformat == 'csv':
-                outdata = jksheet.CSVOut.fromfile(infn, inc_sheetname) # Copy existing data
-                origfn = outfn
-                outfn = outfn.with_suffix("out.csv") 
-            elif outputformat == 'fast-xlsx': 
-                outdata = jksheet.fastXLSXOut.fromfile(infn, inc_sheetname)
-                origfn = outfn
+            if outputformat == 'fast-xlsx': 
                 outfn = outfn.with_suffix(".out.xlsx") 
+                outdata = jksheet.woExcel(outfn,3)
+                outdata.fill_edited_color("fa867e")
+            else:
+                log.critical(f"Unknown output format {outputformat} exists. Exiting."); sys.exit()            
+#            elif outputformat == 'csv':
+#                outdata = jksheet.CSVOut.fromfile(infn, inc_sheetname) # Copy existing data
+#                origfn = outfn
+#                outfn = outfn.with_suffix("out.csv") 
             if outfn.exists(): 
                 log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
-            outdata.outputopen(outfn)
-                
-            indata = outdata        
 
-            # Add fields to output table as needed on the basis of geodata file headers
-            for colname in geodata.output_column_names(activeops):
+            # Add colums to output table
+            for name in indata.get_row_values(1)[::-1]:  # Reverse order to as insertion re-reverses them
+                    outdata.addcolumn(1,  [name])                
+            for i in range(2, inc_first_data_line): 
+#                    Copy secondary header lines
+                    outdata.next() # Just skip a line for now
+            for colname in geodata.output_column_names(activeops)[::-1]:  # Reverse order to as insertion re-reverses them
                 if not outdata.hascolumn(colname):
                     log.info(f"adding column {colname} to output table")
-                    outdata.addcolumn( colname, new_field_insert_point )
+                    outdata.addcolumn(new_field_insert_point,  [colname, NEWCOLUMN])
             if pnotecolname and pnote:
                 if not outdata.hascolumn(pnotecolname):
                     log.info(f"adding column {pnotecolname} to output table")
-                    outdata.addcolumn( pnotecolname, new_field_insert_point )
+                    outdata.addcolumn(new_field_insert_point, [pnotecolname, NEWCOLUMN])
             if append_original_geodata_to_column:
                 if not outdata.hascolumn(append_original_geodata_to_column):
                     log.info(f"adding column {append_original_geodata_to_column} to output table")
-                    outdata.addcolumn(append_original_geodata_to_column , new_field_insert_point )                
-                original_geodata_col = outdata.colnumber(append_original_geodata_to_column) # Note; this must be last insertion, otherwise we need to update this
-                
-            # Copy header lines 
-            outdata.copyheaders(inc_first_data_line) # Copy header lines preceding inc_first_data_line to possible alternative output files
+                    outdata.addcolumn(new_field_insert_point ,  [append_original_geodata_to_column, NEWCOLUMN]) 
+#                original_geodata_col = outdata.colnumber(append_original_geodata_to_column) # Note; this must be last insertion, otherwise we need to update this
 
+            # Copy additional header lines, if any
+            # TODO
+                
             # Step through input file and process line by line
             for row in range( inc_first_data_line, indata.nrows +1 ): 
                 if (row % 10) == 0: log.info(f"Processing row {row}") 
-                rowdict = indata.get_row_as_dict(row) 
                 outdict = indata.get_row_as_dict(row) 
-                edited = { k: False for k in  rowdict.keys() }
+                edited = { k: False for k in  outdict.keys() } # Edit status for each row value
                 try: 
                     # If line has content in specified columns already, skip to WriteRow
                     for skipname in skip_if_content_columnnames: 
-                        if not outdata.isempty_by_colname(row,  skipname): 
-                            raise WriteRow
-                    matchrows = geodata.find_matches(rowdict,  rules, ignorechars)
+                        if not indata.isempty_by_colname(row,  skipname): 
+                            raise WriteRow 
+                    matchrows = geodata.find_matches(outdict,  rules, ignorechars)
         #            if len(matchrows) > 1: matchrows = match_selector(geodata,  matchrows,  rowdict)
                     nmatch = len(matchrows)
                     if nmatch == 0:  
@@ -211,53 +217,46 @@ if __name__ == '__main__':
                         log.debug(f"Found multiple matches for inputrow {row}: {matchrows}. Check geodata source file. Skipping row")
                         raise WriteRow
                     # OK, so we have exactly one match
-                    try:
-                        originaldata = []
-                        mrow = matchrows[0] # index of matching row
-                        match = geodata.get_row_as_dict( mrow )
-                        for colname,val in match.items():  # Iterate over columns in match item
-                            # If column name is not in outdata, it is not an active output field name and can be ignored
-                            if colname.lower() not in outdata.lowercolnames: continue                         
+                    originaldata = []
+                    mrow = matchrows[0] # index of matching row
+                    match = geodata.get_row_as_dict( mrow )
+                    for colname,val in match.items():  # Iterate over columns in match item
+                        # If column name is not in outdata, it is not an active output field name and can be ignored
+                        if colname.lower() not in outdata.lowercolnames: continue        
+                        if colname.lower()  in indata.lowercolnames: # column not in indata, can use always use found data           
                             col = indata.colnumber(colname)
                             oval = indata.getvalue(row, col)  # Value in input data at this position
-                            if my2str(val).strip().lower() == knownd_keep: continue
-                            # Copy original data to a field in the output file (not copying the output cell data into itself
-                            if append_original_geodata_to_column and (col != original_geodata_col):  
-                                if oval: originaldata.append( str(indata.getvalue(row, col) ) )
-                            oper = geodata.get_output_action_for_column(colname, outputops) 
-                            if oper not in outputops:
-                                continue # Skip column with actions that are not output operations
-                            elif (oper == cmd_replace) or ( oper == cmd_fillempty and not outdict[colname] ):
-                                outdict[colname] = val
-                                edited[colname] = True
-                                outdata.setbackground(row, col, replaceFill)
-                            elif oper == cmd_append and val: # Append non-empty values only
-                                outdict[colname] = joinstr( outdict[colname] or "",  val ,  itemsep ) 
-                                edited[colname] = True
-                                outdata.setbackground(row, col, appendFill)
-                        if append_original_geodata_to_column: # Append old data to designated cell
-                                origstr = f"\n{original_geodata_header} {itemsep.join(originaldata)}" 
-                                cn = append_original_geodata_to_column.lower()
-                                outdict[cn] = joinstr(outdict[cn] or "",  origstr ,  "") 
-                                edited[cn] = True
-                                outdata.setbackground(row, original_geodata_col, appendFill)
-                        # Add note by the program, if available
-                        if pnotecolname and pnote:
-                            cn = pnotecolname.lower()
-                            outdict[cn] = joinstr(outdict[cn] or "",  pnote ,  itemsep) 
+                        else: oval = ""
+                        if my2str(val).strip().lower() == knownd_keep: continue # Overrule marker in geodata
+                        # Copy original data to a field in the output file (not copying the output cell data into itself
+                        if append_original_geodata_to_column and (colname != append_original_geodata_to_column):  
+                            if oval: originaldata.append( str(indata.getvalue(row, col) ) )
+                        oper = geodata.get_output_action_for_column(colname, outputops) 
+                        if oper not in outputops:
+                            continue # Skip column with actions that are not output operations
+                        elif (oper == cmd_replace) or ( oper == cmd_fillempty and not outdict[colname] ):
+                            outdict[colname] = val
+                            edited[colname] = op_replaced
+                        elif oper == cmd_append and val: # Append non-empty values only
+                            outdict[colname] = joinstr( outdict.get(colname,"" ),  val ,  itemsep ) 
+                            edited[colname] = op_appended
+                    if append_original_geodata_to_column: # Append old data to designated cell
+                            origstr = f"{original_geodata_header} {itemsep.join(originaldata)}" 
+                            cn = append_original_geodata_to_column.lower()
+                            outdict[cn] = joinstr(outdict.get(cn,"" ),  origstr ,  "") 
                             edited[cn] = True
-                            outdata.setbackground(row, outdata.colnumber(cn), appendFill)
-                        raise WriteRow
-                    except (jkError) as msg:
-                        log.critical(msg)
-                        sys.exit()
+                    # Add note by the program, if available
+                    if pnotecolname and pnote:
+                        cn = pnotecolname.lower()
+                        outdict[cn] = joinstr(outdict.get(cn,"" ),  pnote ,  itemsep) 
+                        edited[cn] = True
+                    raise WriteRow
                 except WriteRow: 
-                    outdata.writerow(row,  outdict,  edited)
+                    outdata.itersetrow(outdict,  edited)
+                    next(outdata) # Move to next line in outdata
             log.info(f"Saving output file {outfn}") 
-            outdata.save()
             outdata.close()
-            if outputformat in ['csv',  'fast-xlsx'] and origfn.exists(): os.remove(origfn) 
-        except (jkError,  FileNotFoundError) as msg:
+        except (jkError,  FileNotFoundError,  ValueError) as msg:
             log.critical(msg)
             sys.exit() 
 

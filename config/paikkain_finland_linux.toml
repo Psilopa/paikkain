@@ -1,5 +1,5 @@
 programname = "paikkain"
-version = "2.9"
+version = "2.93"
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
@@ -28,10 +28,10 @@ transcribernotefield = "MYTranscriberNotes"
 # Leave append_original_geodata_to_column empty for no storage of pre-prosessing data
 append_original_geodata_to_column = "MYGathering[0][MYCoordinateNotes]"
 original_geodata_to_column_header = "Original geodata before automatic processing:"
-transcribernote = "Automatic georeferencing by paikkain {version} using geodatafile {geodatafile:filename}"
+transcribernote = "Automatic georeferencing by {programname} {version} using data files {knowndatafiles:filenames}"
 add_date_to_note = 1
 new_column_insertion_position = 10
-data_append_connector = ", "
+data_append_connector = ","
 replace_fillcolor = "fa867e"
 append_fillcolor = "ffed83"
 # TODO: colouring skipped lines not yet implemented

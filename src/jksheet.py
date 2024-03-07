@@ -1,7 +1,5 @@
 # A wrapper around spreadsheet-like files (or other similar objects)
-#import pathlib import Path
 import openpyxl     
-from openpyxl.cell import WriteOnlyCell
 import jktest,  jktools
 from jkerror import jkError
 import csv, logging, abc
@@ -26,7 +24,6 @@ class jkXLSfilesheet():
         self.ncols = 0
         self.nrows = 0
         self.valuegrid = None # In-memory copy of cell values only for speed
-
 
     def open(self,  fn,  sheetname=None):
         """Uses first sheet is name is not given"""
@@ -79,7 +76,8 @@ class jkXLSfilesheet():
 
     # Column operations
     
-    def isempty_by_colname(self, row,  colname): 
+    def isempty_by_colname(self, row,  colname):        
+        if colname.lower() not in self.lowercolnames: return True  # No column -> no value given
         cn = self.colnumber(colname)        
         return self.isempty(row,  cn)
             
@@ -140,26 +138,6 @@ class jkXLSfilesheet():
         Returns first occurence of colname, if it repeats!"""
         return self.getvalue(row, self.colnumber(colname) )        
 
-##class jkXLSreadonly(jkXLSfilesheet): 
-##    def __init__(self,  *args, **kwargs):        
-##        super(jkXLSfilesheet, self).__init__(*args, **kwargs)        
-##        
-##    def open(self,  fn,  sheetname): 
-##        self.fn = fn
-##        self.wb = openpyxl.load_workbook( fn,  data_only =True)
-##        if not sheetname in self.wb.sheetnames: 
-##            raise jkError(f"Unknown sheet name '{sheetname}' in file {fn}")
-##        self.ws = self.wb[sheetname]
-###        self.ws.reset_dimensions()
-##        self.ncols = self.ws.max_column
-##        self.nrows = self.ws.max_row
-##        if self.nrows < 3: 
-##            raise jkError(f"File {fn} too short, needs at least two header line and one data line")
-##        # Local memory copy of values for speed: create line 0 to match row indexing with self.ws (which indexes starting from 1)
-##        self._valuegrid_from_data() # Copy data to a grid for read access speed!
-##        self._updateheadervars()
-##        self._indexcolumnnames()        
-        
         
 class GeoData(jkXLSfilesheet):
     first_data_row = 4 # Excel indexing, starts a 1!
@@ -335,7 +313,7 @@ class fastXLSXOut(OutData):
     def writerow(self, row,  rowdict, edited): 
         cellrow = []
         for k in rowdict.keys():            
-            cell = WriteOnlyCell(self.nws, value= rowdict[k])
+            cell = openpyxl.cell.WriteOnlyCell(self.nws, value= rowdict[k])
             cell.number_format = '@' # TEXT
             if edited[k]:  cell.fill = editedFill               
             cellrow.append(cell)
@@ -347,3 +325,122 @@ class fastXLSXOut(OutData):
     def setbackground(self, row, col, fillcolor): pass
 
     
+    
+# ------------------NEW CODE BELOW THIS ------------------
+
+#Could be used to format cells depending on the operation type
+op_replaced = 1
+op_appended = 2
+validops = [op_replaced, op_appended]
+
+class jkExcel(abc.ABC):
+    """First row, first col = 1"""
+    def __init__(self,filename,first_data_line):     
+        self.fp = Path(filename)
+        self._name2col = {} 
+        self._lowern2col = {} # Should use lowercase column names
+        self.crow = first_data_line # Current row: skip the first two header lines
+        self.wb = self._openwb()
+        self.sheet = self.wb.active 
+    @property
+    def colnames(self):
+        return self._name2col.keys()
+    @property
+    def lowercolnames(self):
+        return self._lowern2col.keys()
+    @abc.abstractmethod
+    def _openwb(self): 
+        # Should return an open openpyXLSX workbook
+        pass
+    def close(self): 
+        if self.wb: self.wb.save(self.fp)
+    def hascolumn(self,colname, casesensitive=False): 
+        if casesensitive: return colname in self.colnames
+        else: return colname.lower() in self.lowercolnames
+    def _update_name2column(self):        
+        _cotitles = tuple(( x.value for x in self.sheet[1]) )
+        _ind = tuple(range(1,len(_cotitles)+1))
+        self._name2col = { c:i for (c,i) in zip(_cotitles,_ind) if c}
+        self._lowern2col = { c.lower():i for (c,i) in zip(_cotitles,_ind) if c}
+    # Support simple iteration over lines
+    def __next__(self): self.crow += 1
+    def next(self): self.__next__()
+    def end(self): 
+        if self.crow > self.sheet.max_row: return True
+        else: return False
+
+# --------------------------- INPUT FILES ---------------------------
+class roExcel(jkExcel):
+    supports_fill = False
+    def __init__(self,filename,first_data_line):     
+        super().__init__(filename,first_data_line)
+        self._update_name2column()
+    def _openwb(self): 
+        return openpyxl.load_workbook(self.fp, read_only=True)
+#    def _getcell(self,colno,rowno): # Get value
+#        return self.sheet.cell(column=colno,row=rowno).value 
+#    def _getncell(self,colname,rowno): # Get value by column name
+#        colno = self.name2col[colname]
+#        return self._getcell(colno,rowno)
+#   def iterget(self,colno): return self._getcell(colno,self.crow)
+#    def iternget(self,colname): return self._getncell(colname,self.crow)
+    
+# --------------------------- OUTPUT FILES ---------------------------
+class woExcel(jkExcel):
+    """First row, first col = 1"""    
+    supports_fill = True
+    def __init__(self,filename,first_data_line):     
+        self.fill_edited= None
+        super().__init__(filename,first_data_line)
+    def _openwb(self): 
+        # Create a new workbook
+        wb = openpyxl.Workbook()
+        self.sheet = wb.create_sheet()
+        return wb
+    # PROPERTY ATTRIBUTES
+    def fill_edited_color(self, color):
+        self.fill_edited = openpyxl.styles.PatternFill(start_color=color, end_color= color, fill_type='solid')
+    # FILE CONTENT MODIFICATION
+    def addcolumn(self,position,header_rows=["New column"]):
+        """Add column. Note: First column is 1 etc."""
+        if header_rows[0].lower() in self._lowern2col: 
+            raise ValueError(f"Column name {header_rows[0]} does already exist")
+        self.sheet.insert_cols(position) 
+        for ii in range(len(header_rows)):  
+            self._setcell(position,1+ii,header_rows[ii])
+        self._update_name2column() 
+    def _setcell(self,colno,rowno,value): # Get value
+        self.sheet.cell(column=colno,row=rowno).value = value
+    def _setncell(self,colname,rowno,value): # Get value by column name
+        colno = self._lowern2col[colname.lower()]    
+        self._setcell(colno,rowno,value)
+    def iterset(self,colno,value): self._setncell(colno,self.crow,value)
+    def iternset(self,colname,value): self._setncell(colname,self.crow,value)
+    def itersetrow(self, dict_column_and_value,  edited):
+        """Create a new row from a dctionary with column names as keys
+    
+    The keyword edited, of provided, must be an array of len(dict_column_and_value), with values controlling cell formatting. 0 for no formatting, 
+    True values (like non-zero)  integer do currently result in cess color
+        """
+        cellrow = [None]*len(self.colnames)
+#        print("len cellrow = ",  len(cellrow))
+        for colname in dict_column_and_value:       
+            pos = self._lowern2col[colname.lower()] -1
+#            print(pos, colname)
+            cell = openpyxl.cell.WriteOnlyCell(self.sheet, value= dict_column_and_value[colname])
+            cell.number_format = '@' # TEXT
+            if edited and edited[colname] and self.fill_edited: cell.fill = self.fill_edited
+            cellrow[pos] = cell
+        self.sheet.append(cellrow)    
+    def save(self): self.wb.save(str(self.fp))
+ #   def newpath(self,newfp):
+#        self.fp = Path(newfp)    
+#    def add_note_to_filename(self,note,sep="_"):
+#       newfp = self.fp.with_name(self.fp.stem + sep + note + self.fp.suffix)        
+#       self.newpath(newfp)
+#    def setfill(self,colno,rowno,fill): 
+#        cell = self.sheet.cell(column=colno,row=rowno)        
+#        cell.fill = fill
+#    def itersetfill(self,colname,fill): 
+#        colno = self._lowern2col[colname.lower()]    
+#        self.setfill(self.crow, colno,fill)
