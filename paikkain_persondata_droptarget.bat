@@ -1,5 +1,5 @@
 chcp 65001 
-"C:\Python373\python.exe" "Z:/paikkain/paikkain.py" "Z:/paikkain/paikkain_persondata.ini" %*
+"C:\Python373\python.exe" "Z:/paikkain/src/paikkain.py" "Z:/paikkain/config/paikkain_persondata.toml" %*
 @echo off
 set /p id="Enter to quit"
 

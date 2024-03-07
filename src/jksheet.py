@@ -5,6 +5,7 @@ from openpyxl.cell import WriteOnlyCell
 import jktest,  jktools
 from jkerror import jkError
 import csv, logging, abc
+from pathlib import Path
 
 progname = 'paikkain'
 log = logging.getLogger(progname)
@@ -168,7 +169,10 @@ class GeoData(jkXLSfilesheet):
         
     @classmethod
     def fromfile(GeoData, fn,  sheetname):
-        x = GeoData()
+        fp = Path(fn)
+        print(fp)
+        if not fp.exists(): raise jkError(f"File {fp} does not exist")
+        x = GeoData()        
         x.open(fn,  sheetname)
         return x
 

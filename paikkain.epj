@@ -2,7 +2,7 @@
   "header": {
     "comment": "eric project file for project paikkain",
     "copyright": "Copyright (C) 2024 Jere Kahanp\u00e4\u00e4, psilopa@gmail.com",
-    "saved": "2024-03-07, 11:00:31"
+    "saved": "2024-03-07, 11:39:43"
   },
   "project": {
     "AUTHOR": "Jere Kahanp\u00e4\u00e4",
@@ -58,12 +58,7 @@
       ".gitignore",
       "README.txt",
       "TODO.txt",
-      "paikkain_finland.ini",
-      "paikkain_finland_linux.ini",
-      "paikkain_fullnames.ini",
-      "paikkain_persondata.ini",
-      "paikkain_world.ini",
-      "test.toml"
+      "config"
     ],
     "OTHERTOOLSPARMS": {},
     "PACKAGERSPARMS": {},
@@ -78,12 +73,11 @@
     },
     "RESOURCES": [],
     "SOURCES": [
-      "__init__.py",
-      "paikkain.py",
       "paikkain_src/jkerror.py",
       "paikkain_src/jksheet.py",
       "paikkain_src/jktest.py",
-      "paikkain_src/jktools.py"
+      "paikkain_src/jktools.py",
+      "paikkain_src/paikkain.py"
     ],
     "SPELLEXCLUDES": "",
     "SPELLLANGUAGE": "en_US",
