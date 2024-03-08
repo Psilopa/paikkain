@@ -118,15 +118,13 @@ if __name__ == '__main__':
 
         if pnote: pnotecolname = c['outputfiles'].get('transcribernotefield')
         itemsep = c['outputfiles'].get('data_append_connector') + " "
-#        replacefillcolor = c['outputfiles'].get('replace_fillcolor')
-#        appendfillcolor = c['outputfiles'].get('append_fillcolor')
         new_field_insert_point = c['outputfiles'].get('new_column_insertion_position')
 
         original_geodata_header = c['outputfiles'].get('original_geodata_to_column_header')
         append_original_geodata_to_column = c['outputfiles'].get('append_original_geodata_to_column',None)
-        skip_if_content_columnnames = c['inputfiles'].get('skip_if_nonempty')
+        skip_if_content_columnnames = c['inputfiles'].get('skip_if_nonempty',[]) # Empty list default
 
-        # Colour objects for XLS cell background setting
+        # Data file object placeholders
         outdata = None
         geodata = None
 
@@ -213,10 +211,11 @@ if __name__ == '__main__':
                         raise WriteRow
                     # OK, so we have exactly one match
                     originaldata = [] # Kept to store original data from cells that may be replaced (for later reporting in the output)
-                    mrow = matchrows[0] # index of matching row
-                    match = geodata.get_row_as_dict( mrow )
-                    for colname,val in match.items():  # Iterate over columns in match item
-                        if my2str(val).strip().lower() == knownd_keep: continue # Overrule marker in geodata
+                    mrow = matchrows[0] # index of the single matching row
+                    match = geodata.get_row_as_dict( mrow ) # match as a colname: val dictionary
+                    for colname,val in match.items():
+                        if my2str(val).strip().lower() == knownd_keep: 
+                            continue # Overrule marker in known_data
                         # If column name is not in outdata, it is not an active output field name and can be ignored
                         if colname.lower() not in outdata.lowercolnames: continue        
                         # Copy original data to a field in the output file (not copying the output cell data into itself
