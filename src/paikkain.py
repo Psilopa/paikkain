@@ -1,15 +1,19 @@
+# Call example:     jkgeoref setup.ini inputfile.xlsx
 # Current implementation depends on dictionaries keeping their order, which is true in Python3 
 
-class WriteRow(Exception): pass
+import sys
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
-# Call example:     jkgeoref setup.ini inputfile.xlsx
-from pathlib import Path
-import sys,   atexit,  tomllib,  datetime,  time,  argparse
+import atexit,  datetime,  time,  argparse
 import jksheet
 from jkerror import jkError
 from jktest import known_test_types 
 from jktools import joinstr,  my2str
 from openpyxl.styles import PatternFill
+from pathlib import Path
 import logging
 progname = 'paikkain'
 version = '2.92'
@@ -30,6 +34,8 @@ def createlogger(fn):
     logger.addHandler(fh)
     logger.addHandler(ch)   
     return logger
+
+class WriteRow(Exception): pass
 
 def onexit(): 
     if log: log.info("Done")
@@ -112,8 +118,8 @@ if __name__ == '__main__':
 
         if pnote: pnotecolname = c['outputfiles'].get('transcribernotefield')
         itemsep = c['outputfiles'].get('data_append_connector') + " "
-        replacefillcolor = c['outputfiles'].get('replace_fillcolor')
-        appendfillcolor = c['outputfiles'].get('append_fillcolor')
+#        replacefillcolor = c['outputfiles'].get('replace_fillcolor')
+#        appendfillcolor = c['outputfiles'].get('append_fillcolor')
         new_field_insert_point = c['outputfiles'].get('new_column_insertion_position')
 
         original_geodata_header = c['outputfiles'].get('original_geodata_to_column_header')
@@ -121,8 +127,6 @@ if __name__ == '__main__':
         skip_if_content_columnnames = c['inputfiles'].get('skip_if_nonempty')
 
         # Colour objects for XLS cell background setting
-        replaceFill = PatternFill(start_color=replacefillcolor, end_color= replacefillcolor, fill_type='solid')
-        appendFill = PatternFill(start_color=appendfillcolor, end_color= appendfillcolor, fill_type='solid')
         outdata = None
         geodata = None
 
