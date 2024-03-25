@@ -59,9 +59,9 @@ def read_TOML_config(confname):
     pm = config["programname"]
     ver = config["version"]
     file = config["knowndatafiles"]["filenames"][0]    
-    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("{programname}", pm)
-    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("{version}", ver)
-    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("{knowndatafiles:filenames}", file)    
+    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("${programname}", pm)
+    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("${version}", ver)
+    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("${knowndatafiles:filenames}", file)    
     return config    
 
 #  ------------------ main script
