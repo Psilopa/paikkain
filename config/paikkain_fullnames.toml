@@ -27,7 +27,7 @@ transcribernotefield = "MYTranscriberNotes"
 # Leave append_original_geodata_to_column empty for no storage of pre-prosessing data
 append_original_geodata_to_column = "MYNotes"
 original_geodata_to_column_header = "Original name before automatic processing:"
-transcribernote = "Automatic name expansion by ${programname} ${version} using datafile ${geodatafile:filename}"
+transcribernote = "Automatic name expansion by ${programname} ${version} using datafile ${knowndatafiles:filename}."
 add_date_to_note = 1
 new_column_insertion_position = 10
 data_append_connector = ", "
