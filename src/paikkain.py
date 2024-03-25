@@ -167,8 +167,11 @@ if __name__ == '__main__':
 
             #HANDLE EXTRA HEADER ROWS IN INPUT & OUTPUT (AND DATA), IF ANY 
             firstrow = indata.next_row()
-            for i in range(2, inc_first_data_line): 
-                    pass
+            for i in range(len(firstrow)):
+                if not firstrow[i]: 
+                    raise ValueError(f"File {indata.filename}, column {i+1}: Empty column name (first row) not allowed.")
+#            for i in range(2, inc_first_data_line): 
+#                    pass
 #                    nextrow = indata.next_row()
 #                    outdata.next() # Just skip a line for now
             # ADD  COLUMNS INTO OUTPUT IF CONFIG OR KNOWN DATA CONTAIN COLS NOT IN INPUT
