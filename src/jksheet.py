@@ -223,6 +223,8 @@ class jkExcel(abc.ABC):
         self.wb = self._openwb()
         self.sheet = self.wb.active 
     @property
+    def filename(self): return self.fp
+    @property
     def colnames(self):
         return self._name2col.keys()
     @property
@@ -292,6 +294,8 @@ class woExcel(jkExcel):
     # FILE CONTENT MODIFICATION
     def addcolumn(self,position,header_rows=["New column"]):
         """Add column. Note: First column is 1 etc."""
+        if not header_rows[0] or not header_rows[0].strip(): 
+            raise ValueError(f"Missing of empty column names are not allowed.")
         if header_rows[0].lower() in self._lowern2col: 
             raise ValueError(f"Column name {header_rows[0]} does already exist")
         self.sheet.insert_cols(position) 
