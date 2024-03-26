@@ -56,8 +56,9 @@ def read_TOML_config(confname):
         with conffn.open("rb") as f: config = tomllib.load(f)
     except tomllib.TOMLDecodeError as msg: raise jkError(f"Config file '{conffn.absolute()}' parsing failed: f{msg}.")
     # UGLY HARDCODED COMPONENT REPLACEMENT!
-    pm = config["programname"]
-    ver = config["version"]
+    pm = config.get("programname","")
+    ver = config.get("version","")
+    if not "filenames" in config["knowndatafiles"]: raise ValueError("Config file has no knowndatafiles:filenames item.")
     file = config["knowndatafiles"]["filenames"][0]    
     config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("${programname}", pm)
     config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("${version}", ver)
