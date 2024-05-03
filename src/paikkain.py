@@ -205,7 +205,6 @@ if __name__ == '__main__':
                     # If line has content in specified columns already, skip to WriteRow
                     for skipname in skip_if_content_columnnames: 
                         val = origdict.get(skipname,"")
-                        print(f"Value {val} found in column {skipname}")
                         if val.strip(): # Has some content
                             raise WriteRow 
                     matchrows = geodata.find_matches(origdict,  rules, ignorechars)
