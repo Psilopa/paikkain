@@ -16,7 +16,7 @@ from openpyxl.styles import PatternFill
 from pathlib import Path
 import logging
 progname = 'paikkain'
-version = '2.92'
+version = '2.94'
 
 starttime = time.time()
 log = None # Overidden by the createlogger() call
@@ -124,6 +124,8 @@ if __name__ == '__main__':
         original_geodata_header = c['outputfiles'].get('original_geodata_to_column_header')
         append_original_geodata_to_column = c['outputfiles'].get('append_original_geodata_to_column',None)
         skip_if_content_columnnames = c['inputfiles'].get('skip_if_nonempty',[]) # Empty list default
+        skip_if_content_columnnames = [x.lower() for x in skip_if_content_columnnames]
+        log.debug(f"skipping row if content if found in columns {skip_if_content_columnnames}")
 
         # Data file object placeholders
         outdata = None
@@ -202,11 +204,11 @@ if __name__ == '__main__':
                 try: 
                     # If line has content in specified columns already, skip to WriteRow
                     for skipname in skip_if_content_columnnames: 
-                        val = origdict.get(skipname,"")                        
+                        val = origdict.get(skipname,"")
+                        print(f"Value {val} found in column {skipname}")
                         if val.strip(): # Has some content
                             raise WriteRow 
                     matchrows = geodata.find_matches(origdict,  rules, ignorechars)
-        #            if len(matchrows) > 1: matchrows = match_selector(geodata,  matchrows,  rowdict)
                     nmatch = len(matchrows)
                     if nmatch == 0:  
                         raise WriteRow
