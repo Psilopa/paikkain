@@ -200,12 +200,11 @@ if __name__ == '__main__':
                 rowcount += 1
                 origdict = indata.next_row_as_dict() 
                 outdict =  origdict.copy()
-                edited = { k: False for k in  outdict.keys() } # Edit status for each row value
+                edited = { k: False for k in outdict.keys() } # Edit status for each item on this row
                 try: 
                     # If line has content in specified columns already, skip to WriteRow
                     for skipname in skip_if_content_columnnames: 
                         val = origdict.get(skipname,"")
-                        print(f"Value {val} found in column {skipname}")
                         if val.strip(): # Has some content
                             raise WriteRow 
                     matchrows = geodata.find_matches(origdict,  rules, ignorechars)

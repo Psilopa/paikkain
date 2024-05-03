@@ -267,7 +267,7 @@ class roExcel(jkExcel):
     def next_row_as_dict(self):
         row = next(self.rows)
         self.next()
-        return { k:v for (k,v) in zip(self.lowercolnames,row) }
+        return { k:(v or "") for (k,v) in zip(self.lowercolnames,row) }
 #    def _getcell(self,colno,rowno): # Get value
 #        return self.sheet.cell(column=colno,row=rowno).value 
 #    def _getncell(self,colname,rowno): # Get value by column name
