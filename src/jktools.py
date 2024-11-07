@@ -4,13 +4,20 @@ dateformat1 = "%d.%m.%Y"
 dateformat2 = "%Y"
 today = datetime.date.today()
 
-def loadtime(tstring):
-    t = str(tstring)
-    try: return datetime.datetime.strptime( t, dateformat1 )
-    except ValueError: pass
-    # If format1 failed, try format 2 (year only)
-    try: return datetime.datetime.strptime( t, dateformat2 )
-    except ValueError: raise ValueError(f"Date format not recognised for '{t}'")
+def loadtime(tstring, ignore_characters = ["?"]):
+	for c in ignore_characters:
+    	tstring = tstring.replace(c,"")
+	t = str(tstring)
+	try: return datetime.datetime.strptime( t, dateformat1 )
+	except ValueError: pass
+	# If format1 failed, try format 2 (year only)
+	try: return datetime.datetime.strptime( t, dateformat2 )
+	except ValueError: pass
+	# Try m.YYYY
+	try:
+    	m,y = [int(x) for x in t.split(".")]
+    	return datetime.datetime(y,m,1) # If only month-year given, uses 1st day of the month for testing
+	except ValueError: raise ValueError(f"Date format not recognised for '{t}'")
 
 def my2str(x): 
     if x is None: return ""
