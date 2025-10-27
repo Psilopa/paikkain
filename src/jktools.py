@@ -28,17 +28,19 @@ def streq(u, w):
     # Primitive implementation
     return u.lower() == w.lower()
 
-def  locstrip(s,ignorechars=""):
+def  loc_normalize(s,ignorechars="",regular_subs = {}):
     """Normalize string: remove double spaces"""
     if not s or not isinstance(s,str): return s
-    s = re.sub(r"\s+",  " ",  s)
-    s = re.sub(" mlk\.?$",  " maalaiskunta",  s)
-    s = re.sub(" pit\.?$",  " pitäjä",  s)
-    s = re.sub(" lk.?$",  " landskommun",  s)
-    s = re.sub("S[\:\.\,]t ",  "St ",  s)
-    s = re.sub("St\. ",  "St ",  s)
+    s = re.sub(r"\s+",  " ",  s) # replace more than one space with one space
+    for k,v in regular_subs.items():
+        s = re.sub(k,v,s)
     for ch in ignorechars: s = s.replace(ch,"")
     return s
+#    s = re.sub(r" mlk\.?$",  " maalaiskunta",  s)   
+#    s = re.sub(r" pit\.?$",  " pitäjä",  s)
+#    s = re.sub(r" lk.?$",  " landskommun",  s)
+#    s = re.sub(r"S[\:\.\,]t ",  "St ",  s)
+#    s = re.sub(r"St\. ",  "St ",  s)
 
 def joinstr(x, y,  sep):
     if not x: return y
