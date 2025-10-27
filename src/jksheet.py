@@ -165,11 +165,11 @@ class GeoData(jkXLSfilesheet):
             rules.append(rule)                
         return tuple(rules)
         
-    def find_matches(self, datadict,  rules, ignorechars=""): 
-        """Recturns a list of indices to matching rows """
+    def find_matches(self, datadict,  rules, ignorechars="",normalize_dict={}): 
+        """Recturns a lregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsist of indices to matching rows """
         matches = []         
         # Standardize value: no double spaces, no .;:
-        udd = {k: jktools.locstrip(v,ignorechars) for (k, v ) in datadict.items()}
+        udd = {k: jktools.loc_normalize(v,ignorechars,normalize_dict) for (k, v ) in datadict.items()}
         # Test each known georef row and look for perfect matches for all tests.         
         try:
             for row in range(self.first_data_row,self.nrows+1):
