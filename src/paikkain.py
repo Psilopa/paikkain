@@ -22,6 +22,7 @@ starttime = time.time()
 log = None # Overidden by the createlogger() call
 op_replaced = 1
 op_appended = 2
+_SUPPRESS_FILE_CREATION_FOR_TESTING = False
 
 def createlogger(fn):
     logger = logging.getLogger(progname)
@@ -198,6 +199,7 @@ if __name__ == '__main__':
             while not indata.end(): 
                 if (rowcount % 10) == 0: log.info(f"Processing row {rowcount}") 
                 rowcount += 1
+#                if rowcount > 5: break #TESTING
                 origdict = indata.next_row_as_dict() 
                 outdict =  origdict.copy()
                 edited = { k: False for k in outdict.keys() } # Edit status for each item on this row
@@ -217,8 +219,9 @@ if __name__ == '__main__':
                     # OK, so we have exactly one match
                     originaldata = [] # Kept to store original data from cells that may be replaced (for later reporting in the output)
                     mrow = matchrows[0] # index of the single matching row
-                    match = geodata.get_row_as_dict( mrow ) # match as a colname: val dictionary
+                    match = geodata.get_result_dict(mrow, activeops) # match as a colname: val dictionary
                     for colname,val in match.items():
+#                        print(colname,val )
                         if my2str(val).strip().lower() == knownd_keep: 
                             continue # Overrule marker in known_data
                         # If column name is not in outdata, it is not an active output field name and can be ignored
@@ -227,6 +230,7 @@ if __name__ == '__main__':
                         if append_original_geodata_to_column and (colname != append_original_geodata_to_column):  
                             oval = origdict.get(colname,"")  
                             if oval: originaldata.append(oval)
+                        # OK to here
                         oper = geodata.get_output_action_for_column(colname, outputops) 
                         if oper not in outputops:
                             continue # Skip column with actions that are not output operations
@@ -247,11 +251,12 @@ if __name__ == '__main__':
                         outdict[cn] = joinstr(outdict.get(cn,"" ),  pnote ,  itemsep) 
                         edited[cn] = True
                     raise WriteRow
-                except WriteRow: 
+                except WriteRow:
                     outdata.itersetrow(outdict,  edited)
                     next(outdata) # Move to next line in outdata
-            log.info(f"Saving output file {outfn}") 
-            outdata.close()
+            log.info(f"Saving output file {outfn}")
+            if not _SUPPRESS_FILE_CREATION_FOR_TESTING:
+                outdata.close()
         except (jkError,  FileNotFoundError,  ValueError) as msg:
             log.critical(msg)
             sys.exit() 
