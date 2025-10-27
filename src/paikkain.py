@@ -16,7 +16,7 @@ from openpyxl.styles import PatternFill
 from pathlib import Path
 import logging
 progname = 'paikkain'
-version = '2.94'
+version = '2.95'
 
 starttime = time.time()
 log = None # Overidden by the createlogger() call
@@ -61,9 +61,9 @@ def read_TOML_config(confname):
     ver = config.get("version","")
     if not "filenames" in config["knowndatafiles"]: raise ValueError("Config file has no knowndatafiles:filenames item.")
     file = config["knowndatafiles"]["filenames"][0]    
-    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("${programname}", pm)
-    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("${version}", ver)
-    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("${knowndatafiles:filenames}", file)    
+    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("{programname}", pm)
+    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("{version}", ver)
+    config["outputfiles"]["transcribernote"] = config["outputfiles"]["transcribernote"].replace("{knowndatafiles:filenames}", file)    
     return config    
 
 #  ------------------ main script
@@ -91,6 +91,8 @@ if __name__ == '__main__':
         inc_sheetname = c['inputfiles'].get('sheetname', None)
         inc_first_data_line = c['inputfiles'].get('first_data_line', 2)
         ignorechars = c.get('ignore_in_comparison',"")
+        # Regular expression replacements
+        regular_subs = c['inputfiles']['replacements']
 
         knownd_keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
         knownd_sheetnames = c['knowndatafiles'].get('sheetname',None)
@@ -209,7 +211,7 @@ if __name__ == '__main__':
                         val = str(origdict.get(skipname,""))
                         if val and val.strip(): # Has some content
                             raise WriteRow 
-                    matchrows = geodata.find_matches(origdict,  rules, ignorechars)
+                    matchrows = geodata.find_matches( origdict, rules, normalize_dict=regular_subs )
                     nmatch = len(matchrows)
                     if nmatch == 0:  
                         raise WriteRow
