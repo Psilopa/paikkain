@@ -1,0 +1,37 @@
+programname = "paikkain"
+version = "2.94"
+
+[knowndatafiles]
+# NOTE: Currently one one knowndata file per ini file is supported. 
+filenames = ["Z:/paikkain/paikka-aineistot/paikkain_leg_names-005dev.xlsx"]
+#sheetname = "names"
+keep_original_data_marker = "<original>"
+cmd_replace = "replace"
+cmd_append = "append"
+cmd_nothing = "no_output"
+cmd_fillempty = "fillempty"
+
+[inputfiles]
+#datasheetname = "Specimens"
+first_data_line = 3
+# Skip_row if_data_exists
+#skip_if_nonempty = ["MYGathering[0][MYLongitude]","MYGathering[0][MYLatitude]"]
+
+[outputfiles]
+filename_add = "names"
+# output_format supported values: xlsx,fast-xlsx, csv. 
+# XLSX keeps original formatting, but is very slow.
+# CSV support is experimental ... avoid!
+output_format = "fast-xlsx"
+transcribernotefield = "MYTranscriberNotes"
+# Leave append_original_geodata_to_column empty for no storage of pre-prosessing data
+append_original_geodata_to_column = "MYNotes"
+original_geodata_to_column_header = "Original name before automatic processing:"
+transcribernote = "Automatic name expansion by ${programname} ${version} using datafile ${knowndatafiles:filename}."
+add_date_to_note = 1
+new_column_insertion_position = 10
+data_append_connector = ", "
+replace_fillcolor = "fa867e"
+append_fillcolor = "ffed83"
+# TODO: colouring skipped lines not yet implemented
+#skipped_has_coords_fillcolor = ffed83

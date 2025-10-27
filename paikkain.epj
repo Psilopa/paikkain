@@ -1,0 +1,138 @@
+{
+  "header": {
+    "comment": "eric project file for project paikkain",
+    "copyright": "Copyright (C) 2024 Jere Kahanp\u00e4\u00e4, psilopa@gmail.com",
+    "saved": "2024-03-07, 11:39:43"
+  },
+  "project": {
+    "AUTHOR": "Jere Kahanp\u00e4\u00e4",
+    "CHECKERSPARMS": {},
+    "DESCRIPTION": "",
+    "DOCSTRING": "ericdoc",
+    "DOCUMENTATIONPARMS": {},
+    "EMAIL": "psilopa@gmail.com",
+    "EMBEDDED_VENV": false,
+    "EOL": 0,
+    "FILETYPES": {
+      "*.cfg": "OTHERS",
+      "*.e4p": "OTHERS",
+      "*.epj": "OTHERS",
+      "*.ini": "OTHERS",
+      "*.json": "OTHERS",
+      "*.md": "OTHERS",
+      "*.py": "SOURCES",
+      "*.py3": "SOURCES",
+      "*.pyw": "SOURCES",
+      "*.pyw3": "SOURCES",
+      "*.rst": "OTHERS",
+      "*.toml": "OTHERS",
+      "*.txt": "OTHERS",
+      "*.yaml": "OTHERS",
+      "*.yml": "OTHERS",
+      "GNUmakefile": "OTHERS",
+      "Makefile": "OTHERS",
+      "README": "OTHERS",
+      "README.*": "OTHERS",
+      "makefile": "OTHERS"
+    },
+    "FORMS": [],
+    "HASH": "b90f3912345e0c99f8f2943b0a7ca64749805f41",
+    "IDLPARAMS": {
+      "DefinedNames": [],
+      "IncludeDirs": [],
+      "UndefinedNames": []
+    },
+    "LEXERASSOCS": {},
+    "LICENSE": "",
+    "MAINSCRIPT": "paikkain.py",
+    "MAKEPARAMS": {
+      "MakeEnabled": false,
+      "MakeExecutable": "",
+      "MakeFile": "",
+      "MakeParameters": "",
+      "MakeTarget": "",
+      "MakeTestOnly": true
+    },
+    "MIXEDLANGUAGE": false,
+    "OTHERS": [
+      ".gitignore",
+      "README.txt",
+      "TODO.txt",
+      "config"
+    ],
+    "OTHERTOOLSPARMS": {},
+    "PACKAGERSPARMS": {},
+    "PROGLANGUAGE": "Python3",
+    "PROJECTTYPE": "Console",
+    "PROJECTTYPESPECIFICDATA": {},
+    "RCCPARAMS": {
+      "CompressLevel": 0,
+      "CompressionDisable": false,
+      "CompressionThreshold": 70,
+      "PathPrefix": ""
+    },
+    "RESOURCES": [],
+    "SOURCES": [
+      "paikkain_src/jkerror.py",
+      "paikkain_src/jksheet.py",
+      "paikkain_src/jktest.py",
+      "paikkain_src/jktools.py",
+      "paikkain_src/paikkain.py"
+    ],
+    "SPELLEXCLUDES": "",
+    "SPELLLANGUAGE": "en_US",
+    "SPELLWORDS": "",
+    "TESTING_FRAMEWORK": "",
+    "TRANSLATIONEXCEPTIONS": [],
+    "TRANSLATIONPATTERN": "",
+    "TRANSLATIONS": [],
+    "TRANSLATIONSBINPATH": "",
+    "TRANSLATIONSOURCESTARTPATH": "",
+    "UICPARAMS": {
+      "Package": "",
+      "PackagesRoot": "",
+      "RcSuffix": ""
+    },
+    "VCS": "Git",
+    "VCSOPTIONS": {
+      "add": [
+        ""
+      ],
+      "checkout": [
+        ""
+      ],
+      "commit": [
+        ""
+      ],
+      "diff": [
+        ""
+      ],
+      "export": [
+        ""
+      ],
+      "global": [
+        ""
+      ],
+      "history": [
+        ""
+      ],
+      "log": [
+        ""
+      ],
+      "remove": [
+        ""
+      ],
+      "status": [
+        ""
+      ],
+      "tag": [
+        ""
+      ],
+      "update": [
+        ""
+      ]
+    },
+    "VCSOTHERDATA": {},
+    "VERSION": "0.1"
+  }
+}
