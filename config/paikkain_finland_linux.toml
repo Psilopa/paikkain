@@ -1,5 +1,6 @@
 programname = "paikkain"
 version = "2.95"
+#ignore_in_comparison = ",.;:-—"
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
