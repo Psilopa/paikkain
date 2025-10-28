@@ -4,7 +4,7 @@ version = "2.95"
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
-filenames = ["Z:/paikkain/paikka-aineistot/paikkain_Fin_sl-gen033.xlsx"]
+filenames = ["Z:/paikkain/paikka-aineistot/paikkain_Fin_sl-gen034.xlsx"]
 sheetname = "locdata"
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
@@ -27,8 +27,8 @@ skip_if_nonempty = ["MYGathering[0][MYLongitude]","MYGathering[0][MYLatitude]"]
 # [zyx] = one of x, y, OR z
 " mlk\\.?$"     = " maalaiskunta" 
 " pit\\.?$" 	    = " pitäjä"
-"S[\\:\\.\\,]t "    = "St "
-"St\\. " 	    = "St "
+"S[\\:\\.\\,]t "    = "S:t "
+"St\\. " 	    = "S:t "
 " lk\\.?$" 	    = " landskommun"
 " sn\\.?$"     = " socken" 
 
