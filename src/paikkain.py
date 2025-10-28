@@ -23,6 +23,7 @@ log = None # Overidden by the createlogger() call
 op_replaced = 1
 op_appended = 2
 _SUPPRESS_FILE_CREATION_FOR_TESTING = False
+first_data_line_of_geodata = 4
 
 def createlogger(fn):
     logger = logging.getLogger(progname)
@@ -140,7 +141,9 @@ if __name__ == '__main__':
         for knowdatafn in knownd_filenames:
             geodatalist = []
             log.info(f"Loading geodata from file {knowdatafn}")
-            geodata = jksheet.GeoData.fromfile(Path(knowdatafn), knownd_sheetnames)     
+            geodata = jksheet.GeoData.fromfile(Path(knowdatafn), 
+                knownd_sheetnames, 
+                first_data_line_of_geodata)     
             log.debug("Parsing rules from geodata file headers")
             rules = geodata.parse_rules(known_test_types) # Parse row matching rules from GeoData file header rows
             geodatalist.append( geodata )
@@ -162,7 +165,7 @@ if __name__ == '__main__':
             outfn = create_output_name(infn, output_marker)        
             if outputformat == 'fast-xlsx': 
                 outfn = outfn.with_suffix(".out.xlsx") 
-                outdata = jksheet.woExcel(outfn,3)
+                outdata = jksheet.woExcel(outfn,inc_first_data_line)
                 outdata.fill_edited_color("fa867e")
             else:
                 log.critical(f"Unknown output format {outputformat} exists. Exiting."); sys.exit()            
@@ -218,7 +221,9 @@ if __name__ == '__main__':
                     if nmatch == 0:  
                         raise WriteRow
                     if nmatch > 1:  
-                        log.debug(f"Found multiple matches for inputrow {rowcount}: {matchrows}. Check geodata source file. Skipping row")
+                        # For error message, use actual row count in file, not the internal copy of the data without header lines
+                        filerowcount = rowcount-inc_first_data_line+1
+                        log.debug(f"Found multiple matches for inputrow {filerowcount}: {matchrows}. Check geodata source file. Skipping row")
                         raise WriteRow
                     # OK, so we have exactly one match
                     originaldata = [] # Kept to store original data from cells that may be replaced (for later reporting in the output)
