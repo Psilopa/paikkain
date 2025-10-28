@@ -28,7 +28,7 @@ skip_if_nonempty = ["MYGathering[0][MYLongitude]","MYGathering[0][MYLatitude]"]
 " mlk\\.?$"     = " maalaiskunta" 
 " pit\\.?$" 	    = " pitäjä"
 "S[\\:\\.\\,]t "    = "S:t "
-"St\\. " 	    = "S:t "
+"St\\.? " 	    = "S:t "
 " lk\\.?$" 	    = " landskommun"
 " sn\\.?$"     = " socken" 
 
