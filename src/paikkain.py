@@ -92,7 +92,9 @@ if __name__ == '__main__':
         inc_first_data_line = c['inputfiles'].get('first_data_line', 2)
         ignorechars = c.get('ignore_in_comparison',"")
         # Regular expression replacements
-        regular_subs = c['inputfiles']['replacements']
+        if 'replacements' in c['inputfiles']:
+            regular_subs = c['inputfiles']['replacements']
+        else: regular_subs = {}
 
         knownd_keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
         knownd_sheetnames = c['knowndatafiles'].get('sheetname',None)
