@@ -146,23 +146,26 @@ class GeoData(roExcel):
         super(roExcel, self).__init__(*args, **kwargs)
         self._row_colnames = 1
         self._row_rules = 2 # Excel indexing, 2nd row!
-        self.first_data_row = 0
+        self.first_data_row = 4 # Default first data row
         self._strdata = None # A tuple with data, preconverted to str for speed
         self._rulesrow = None
         self._colnamesrow = None
         
     @classmethod
-    def fromfile(GeoData, fn,  sheetname, first_data_row = 4):        
+    def fromfile(GeoData, fn,  sheetname, first_data_row=4):        
     # TODO: NO OPTION TO PASS SHEET NAME
         fp = Path(fn)
         print(fp)
         if not fp.exists(): raise jkError(f"File {fp} does not exist")
         x = GeoData(fn,first_data_row)
+        
         x.first_data_row = first_data_row
-        x._colnamesrow = x.get_row(x._row_colnames)        
-        x._rulesrow = x.get_row(x._row_rules)
-        x.reverse_column_names = [ s.lower() for s in x._colnamesrow[::-1] ]
-        x.reverse_rules = x.rulesrow[::-1]
+        x._colnamesrow = [ s or "" for s in x.get_row(x._row_colnames) ] # Replaces None with ""
+        x._rulesrow = [ s or "" for s in x.get_row(x._row_rules) ] # Replaces None with ""
+        print(x._colnamesrow)
+        print(x._rulesrow)
+        x.reverse_column_names = [ s.lower() for s in x._colnamesrow[::-1] ]        
+        x.reverse_rules = x._rulesrow[::-1]
 #        print("collrules = ", x.reverse_column_names)
 #        print("rules = ", x.reverse_rules)
         assert len(x.reverse_column_names) == len(x.reverse_rules)
