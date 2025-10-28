@@ -1,5 +1,5 @@
 programname = "paikkain"
-version = "2.94"
+version = "2.95"
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
