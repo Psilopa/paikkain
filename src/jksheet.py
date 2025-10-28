@@ -144,6 +144,7 @@ class roExcel(jkExcel):
 class GeoData(roExcel):
     def __init__(self,  *args, **kwargs):        
         super(roExcel, self).__init__(*args, **kwargs)
+        # TODO: Hardcoded for now, move to config!
         self._row_colnames = 1
         self._row_rules = 2 # Excel indexing, 2nd row!
         self.first_data_row = 4 # Default first data row
