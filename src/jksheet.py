@@ -17,14 +17,14 @@ validops = [op_replaced, op_appended]
 
 class jkExcel(abc.ABC):
     """First row, first col = 1"""
-    def __init__(self,filename,first_data_line):     
+    def __init__(self,filename,first_data_line_number):     
         self.fp = Path(filename)
         self._name2col = {} 
         self._lowern2col = {} # Should use lowercase column names
         self.crow = 1 # Current row
         self.wb = self._openwb()
         self.sheet = self.wb.active # Active sheet in the workbook
-        self.first_data_line = first_data_line
+        self.first_data_line = first_data_line_number
     @property
     def nrows(self): return self.sheet.max_row
     @property
@@ -161,7 +161,9 @@ class GeoData(roExcel):
         
         x.first_data_row = first_data_row
         x._colnamesrow = [ s or "" for s in x.get_row(x._row_colnames) ] # Replaces None with ""
+        x._colnamesrow = [ s.strip() for s in x._colnamesrow ]
         x._rulesrow = [ s or "" for s in x.get_row(x._row_rules) ] # Replaces None with ""
+        x._rulesrow = [ s.strip() for s in x._rulesrow ]
         x.reverse_column_names = [ s.lower() for s in x._colnamesrow[::-1] ]        
         x.reverse_rules = x._rulesrow[::-1]
 #        print("collrules = ", x.reverse_column_names)
