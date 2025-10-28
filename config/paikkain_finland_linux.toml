@@ -1,10 +1,10 @@
 programname = "paikkain"
-version = "2.93"
+version = "2.95"
+#ignore_in_comparison = ",.;:-—"
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
-#filename = /home/kahanpaa/paikkain/paikka-aineistot/paikkain_World-010dev.xlsx
-filenames = ["/home/kahanpaa/paikkain/paikka-aineistot/paikkain_Fin_sl-gen030dev.xlsx"]
+filenames = ["/home/kahanpaa/paikkain/paikka-aineistot/paikkain_Fin_sl-gen033.xlsx"]
 sheetname = "locdata"
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
@@ -18,11 +18,23 @@ first_data_line = 3
 # Skip_row if_data_exists
 skip_if_nonempty = ["MYGathering[0][MYLongitude]","MYGathering[0][MYLatitude]"]
 
+[inputfiles.replacements]
+# These use Regular Expression language (the Python variant):
+# \ must be encoded as \\
+# $ = end of string
+# \\. = literal period
+# \\.? = zero to one periods
+# [zyx] = one of x, y, OR z
+" mlk\\.?$"     = " maalaiskunta" 
+" pit\\.?$" 	    = " pitäjä"
+"S[\\:\\.\\,]t "    = "St "
+"St\\. " 	    = "St "
+" lk\\.?$" 	    = " landskommun"
+" sn\\.?$"     = " socken" 
+
 [outputfiles]
 filename_add = "autolocalities"
-# output_format supported values: xlsx,fast-xlsx, csv. 
-# XLSX keeps original formatting, but is very slow.
-# CSV support is experimental ... avoid!
+# output_format supported values: fast-xlsx [NOT YET csv]
 output_format = "fast-xlsx"
 transcribernotefield = "MYTranscriberNotes"
 # Leave append_original_geodata_to_column empty for no storage of pre-prosessing data
@@ -31,8 +43,9 @@ original_geodata_to_column_header = "Original geodata before automatic processin
 transcribernote = "Automatic georeferencing by {programname} {version} using data files {knowndatafiles:filenames}"
 add_date_to_note = 1
 new_column_insertion_position = 10
-data_append_connector = ","
+data_append_connector = ", "
 replace_fillcolor = "fa867e"
 append_fillcolor = "ffed83"
 # TODO: colouring skipped lines not yet implemented
 #skipped_has_coords_fillcolor = ffed83
+
