@@ -1,9 +1,9 @@
 programname = "paikkain"
-version = "2.94"
+version = "2.95"
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
-filenames = ["Z:/paikkain/paikka-aineistot/paikkain_Fin_sl-gen031dev.xlsx"]
+filenames = ["Z:/paikkain/paikka-aineistot/paikkain_Fin_sl-gen033.xlsx"]
 sheetname = "locdata"
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
@@ -17,17 +17,29 @@ first_data_line = 3
 # Skip_row if_data_exists
 skip_if_nonempty = ["MYGathering[0][MYLongitude]","MYGathering[0][MYLatitude]"]
 
+[inputfiles.replacements]
+# These use Regular Expression language (the Python variant):
+# \ must be encoded as \\
+# $ = end of string
+# \\. = literal period
+# \\.? = zero to one periods
+# [zyx] = one of x, y, OR z
+" mlk\\.?$"     = " maalaiskunta" 
+" pit\\.?$" 	    = " pitäjä"
+"S[\\:\\.\\,]t "    = "St "
+"St\\. " 	    = "St "
+" lk\\.?$" 	    = " landskommun"
+" sn\\.?$"     = " socken" 
+
 [outputfiles]
 filename_add = "autolocalities"
-# output_format supported values: xlsx,fast-xlsx, csv. 
-# XLSX keeps original formatting, but is very slow.
-# CSV support is experimental ... avoid!
+# output_format supported values: fast-xlsx [NOT YET csv]
 output_format = "fast-xlsx"
 transcribernotefield = "MYTranscriberNotes"
 # Leave append_original_geodata_to_column empty for no storage of pre-prosessing data
 append_original_geodata_to_column = "MYGathering[0][MYCoordinateNotes]"
 original_geodata_to_column_header = "Original geodata before automatic processing:"
-transcribernote = "Automatic georeferencing by ${programname} ${version} using geodatafile ${knowndatafiles:filenames}"
+transcribernote = "Automatic georeferencing by {programname} {version} using data files {knowndatafiles:filenames}"
 add_date_to_note = 1
 new_column_insertion_position = 10
 data_append_connector = ", "
