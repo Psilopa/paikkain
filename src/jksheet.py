@@ -155,15 +155,12 @@ class GeoData(roExcel):
     def fromfile(GeoData, fn,  sheetname, first_data_row=4):        
     # TODO: NO OPTION TO PASS SHEET NAME
         fp = Path(fn)
-        print(fp)
         if not fp.exists(): raise jkError(f"File {fp} does not exist")
         x = GeoData(fn,first_data_row)
         
         x.first_data_row = first_data_row
         x._colnamesrow = [ s or "" for s in x.get_row(x._row_colnames) ] # Replaces None with ""
         x._rulesrow = [ s or "" for s in x.get_row(x._row_rules) ] # Replaces None with ""
-        print(x._colnamesrow)
-        print(x._rulesrow)
         x.reverse_column_names = [ s.lower() for s in x._colnamesrow[::-1] ]        
         x.reverse_rules = x._rulesrow[::-1]
 #        print("collrules = ", x.reverse_column_names)
