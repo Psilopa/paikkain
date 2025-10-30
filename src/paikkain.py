@@ -176,16 +176,13 @@ if __name__ == '__main__':
             if outfn.exists(): 
                 log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
 
-            #HANDLE EXTRA HEADER ROWS IN INPUT & OUTPUT (AND DATA), IF ANY 
             firstrow = indata.next_row()
+            # Verify that 1st line is valid
             for i in range(len(firstrow)):
                 if not firstrow[i]: 
                     raise ValueError(f"File {indata.filename}, column {i+1}: Empty column name (first row) not allowed.")
-#            for i in range(2, inc_first_data_line): 
-#                    pass
-#                    nextrow = indata.next_row()
-#                    outdata.next() # Just skip a line for now
-            # ADD  COLUMNS INTO OUTPUT IF CONFIG OR KNOWN DATA CONTAIN COLS NOT IN INPUT
+
+            # ADD COLUMNS INTO OUTPUT IF CONFIG OR KNOWN DATA CONTAIN COLS NOT IN INPUT
             for name in firstrow[::-1]:  # Grab first row. Reverse order to as insertion re-reverses them
                     outdata.addcolumn(1,  [name])                
             for colname in geodata.output_column_names(activeops)[::-1]:  # Reverse order to as insertion re-reverses them
@@ -202,15 +199,16 @@ if __name__ == '__main__':
                     outdata.addcolumn(new_field_insert_point ,  [append_original_geodata_to_column]) 
 
             # Step through input file and process line by line
-            rowcount = inc_first_data_line
+            # 1st line (header line) has already been read
+            rowcount = 2
             while not indata.end(): 
                 if (rowcount % 10) == 0: log.info(f"Processing row {rowcount}") 
-                rowcount += 1
-#                if rowcount > 5: break #TESTING
                 origdict = indata.next_row_as_dict() 
                 outdict =  origdict.copy()
                 edited = { k: False for k in outdict.keys() } # Edit status for each item on this row
                 try: 
+                    if rowcount < inc_first_data_line: # If this is a header line, just write
+                        raise WriteRow
                     # If line has content in specified columns already, skip to WriteRow
                     for skipname in skip_if_content_columnnames: 
                         val = str(origdict.get(skipname,""))
@@ -221,9 +219,7 @@ if __name__ == '__main__':
                     if nmatch == 0:  
                         raise WriteRow
                     if nmatch > 1:  
-                        # For error message, use actual row count in file, not the internal copy of the data without header lines
-                        filerowcount = rowcount-inc_first_data_line+1
-                        log.debug(f"Found multiple matches for inputrow {filerowcount}: {matchrows}. Check geodata source file. Skipping row")
+                        log.debug(f"Found multiple matches for inputrow {rowcount}: {matchrows}. Check geodata source file. Skipping row")
                         raise WriteRow
                     # OK, so we have exactly one match
                     originaldata = [] # Kept to store original data from cells that may be replaced (for later reporting in the output)
@@ -263,6 +259,7 @@ if __name__ == '__main__':
                 except WriteRow:
                     outdata.itersetrow(outdict,  edited)
                     next(outdata) # Move to next line in outdata
+                    rowcount += 1
             log.info(f"Saving output file {outfn}")
             if not _SUPPRESS_FILE_CREATION_FOR_TESTING:
                 outdata.close()
