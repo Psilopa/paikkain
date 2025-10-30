@@ -16,7 +16,7 @@ from openpyxl.styles import PatternFill
 from pathlib import Path
 import logging
 progname = 'paikkain'
-version = '2.95'
+version = '3.0'
 
 starttime = time.time()
 log = None # Overidden by the createlogger() call
