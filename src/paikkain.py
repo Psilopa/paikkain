@@ -233,7 +233,7 @@ if __name__ == '__main__':
                         if colname.lower() not in outdata.lowercolnames: continue        
                         # Copy original data to a field in the output file (not copying the output cell data into itself
                         if append_original_geodata_to_column and (colname != append_original_geodata_to_column):  
-                            oval = origdict.get(colname,"")  
+                            oval = str(origdict.get(colname,""))
                             if oval: originaldata.append(oval)
                         # OK to here
                         oper = geodata.get_output_action_for_column(colname, outputops) 
