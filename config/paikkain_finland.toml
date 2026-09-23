@@ -4,7 +4,7 @@ version = "3.0"
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
-filenames = ["Z:/paikkain/paikka-aineistot/paikkain_Fin_sl-gen034.xlsx"]
+filenames = ["Z:/paikkain/paikka-aineistot/paikkain_Fin_sl-gen037dev.xlsx"]
 sheetname = "locdata"
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
