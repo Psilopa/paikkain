@@ -247,9 +247,10 @@ if __name__ == '__main__':
                             edited[colname] = op_appended
                     if append_original_geodata_to_column: # Append old data to designated cell
                             origstr = f"{original_geodata_header} {itemsep.join(originaldata)}" 
-                            cn = append_original_geodata_to_column.lower()
-                            outdict[cn] = joinstr(outdict.get(cn,"" ),  origstr ,  "") 
-                            edited[cn] = True
+                            originaldata_column_name = append_original_geodata_to_column.lower()
+                            existing_data_in_field = str(outdict.get(originaldata_column_name,"" )) 
+                            outdict[originaldata_column_name] = joinstr(existing_data_in_field,  origstr,  ". ") 
+                            edited[originaldata_column_name] = True
                     # Add note by the program, if available
                     if pnotecolname and pnote:
                         cn = pnotecolname.lower()
