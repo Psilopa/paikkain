@@ -247,15 +247,15 @@ if __name__ == '__main__':
                             edited[colname] = op_appended
                     if append_original_geodata_to_column: # Append old data to designated cell
                             origstr = f"{original_geodata_header} {itemsep.join(originaldata)}" 
-                            originaldata_column_name = append_original_geodata_to_column.lower()
-                            existing_data_in_field = str(outdict.get(originaldata_column_name,"" )) 
-                            outdict[originaldata_column_name] = joinstr(existing_data_in_field,  origstr,  ". ") 
-                            edited[originaldata_column_name] = True
-                    # Add note by the program, if available
+                            originaldata_col = append_original_geodata_to_column.lower()
+                            existing_data_in_field = str(outdict.get(originaldata_col,"" )) 
+                            outdict[originaldata_col] = joinstr(existing_data_in_field,  origstr,  ". ") 
+                            edited[originaldata_col] = True
+                    # If available, add note by the program to clumn 'pnotecolname'
                     if pnotecolname and pnote:
-                        cn = pnotecolname.lower()
-                        outdict[cn] = joinstr(outdict.get(cn,"" ),  pnote ,  itemsep) 
-                        edited[cn] = True
+                        pnote_column = pnotecolname.lower()
+                        outdict[pnote_column] = joinstr(outdict.get(pnote_column,"" ),  pnote ,  itemsep) 
+                        edited[pnote_column] = True
                     raise WriteRow
                 except WriteRow:
                     outdata.itersetrow(outdict,  edited)
