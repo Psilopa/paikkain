@@ -1,10 +1,21 @@
+paikkain.log
+testiaineisto/*
+requirements.in
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Byte-compiled / optimized / DLL files
+*.py[codz]
+*$py.class
+
+# Standard stuff
 .eric6project/
 .eric7project/
 .ropeproject/
 .jedi/
 .directory/
-*.pyc
-*.pyo
 *.orig
 *.bak
 *.rej
