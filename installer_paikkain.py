@@ -106,7 +106,7 @@ def install_paikkain():
          d = re_sourcefile.sub(newsource, d)
          # Path to  python itself
          newpythonpath = '"' + str(sys.executable) + '"'
-         newpythonpath = newpythonpath.replace( "pythonw.exe", "pythonw.exe" ) 
+         newpythonpath = newpythonpath.replace( "pythonw.exe", "python.exe" ) 
          newpythonpath = newpythonpath.replace( "\\", "/" ) 
          # Path to configfile
          m = re_configfile.search(d)
