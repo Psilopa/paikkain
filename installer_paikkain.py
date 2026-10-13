@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Install pyxls
-import subprocess, requests, sys, glob, re
+import subprocess, requests, sys, glob, re, argparse
 from pathlib import Path
 
 _TEST = False
@@ -72,25 +72,26 @@ def replace_pythonexe_in_string(datastring):
      newpython = '"' + str(sys.executable.replace("\\","/")) + '"'
      return re_python.sub(newpython, datastring)
 
-def install_package(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-datapackages = [latest_finland_file_id]
-def install_paikkain():
+def install_packages(packages):
     for package in packages:
         print(f"Trying to install a Python module {package}")
-        install_package(package)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
         if not _TEST: print(f"\tinstall {package} successfull.")
-    print(datafiledir)
-    if not datafiledir.exists():
-        datafiledir.mkdir()
+
+
+def update_datafiles(latestdata):
     for filename, google_id in latestdata.items():
         # Download latest Finland data
         print(f"Trying to download latest data files.")
         targetfile = datafiledir / filename 
         if not _TEST: download_file_from_google_drive(google_id, targetfile)
         print(f"\tdownloading {filename} successfull.")
-    # REWRITE BAT FILES TO REFER TO CORREC
+
+def install_paikkain():
+    if not datafiledir.exists():
+        datafiledir.mkdir()
+    install_packages( packages )
+    update_datafiles( latestdata )
     # TODO: THESE DEPEND ON THE PATHS NOTING HAVING EMPTY SPACES!
     re_pythonexe = re.compile( r'"\S*?\.exe"' )
     re_sourcefile = re.compile( r'"\S*?\.py"' )
@@ -131,4 +132,13 @@ def install_paikkain():
         with fp.open("w") as f: f.write(d) # Write updated data
         print(f"done")
 
-install_paikkain()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+                    prog='paikkain')
+    parser.add_argument("-u", "--update_only", action="store_true",
+                        help="Only update data files to latest versions.")
+    args = parser.parse_args()
+    if args.update_only:
+        update_datafiles()
+    else:
+        install_paikkain()
