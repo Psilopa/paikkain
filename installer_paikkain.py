@@ -138,7 +138,5 @@ if __name__ == '__main__':
     parser.add_argument("-u", "--update_only", action="store_true",
                         help="Only update data files to latest versions.")
     args = parser.parse_args()
-    if args.update_only:
-        update_datafiles()
-    else:
-        install_paikkain()
+    if args.update_only: update_datafiles( latestdata )
+    else: install_paikkain()
