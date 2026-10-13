@@ -1,8 +1,7 @@
 chcp 65001 
-"C:\Python3115\python.exe" "Z:/paikkain/src/paikkain.py" "Z:/paikkain/config/paikkain_persondata.toml" %*
+"C:/Python3144/python.exe" "Z:/paikkain/src/paikkain.py" "Z:/paikkain/config/paikkain_world.toml" %*
 @echo off
 set /p id="Enter to quit"
-
 
 REM Set encoding of this file to UTF-8
 REM run Python script
