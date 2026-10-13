@@ -5,10 +5,12 @@
 import subprocess, requests, sys, glob, re
 from pathlib import Path
 
-setupdir = Path("config")
 pythonpath = Path(sys.executable).parent
+
 batfiles = glob.glob("batsrc/*.bat")
 installdir = Path(__file__).parent # The directory where the installer is
+setupdir = Path("config")
+sourcefile = installdir / "src" / "paikkain.py"
 datafiledir = installdir / Path("paikka-aineistot")
 
 latest_finland_file_id = "1wlivBAY6AAVlIQAeAD7bU4o84JFPe60z"
@@ -34,7 +36,6 @@ conf_to_datafile = {
     
 packages = ["openpyxl"]
 
-re_python = re.compile( r'".*?exe"' )
 re_datafile_line = re.compile( r'filenames = \[(.*)\]' )
 
 def download_file_from_google_drive(file_id, destination):
@@ -51,14 +52,12 @@ def download_file_from_google_drive(file_id, destination):
 
     save_response_content(response, destination)
 
-
 def get_confirm_token(response):
     for key, value in response.cookies.items():
         if key.startswith("download_warning"):
             return value
 
     return None
-
 
 def save_response_content(response, destination):
     CHUNK_SIZE = 32768
@@ -91,13 +90,21 @@ def install_paikkain():
 #        download_file_from_google_drive(google_id, targetfile)
         print(f"\tdownloading {filename} successfull.")
     # REWRITE BAT FILES TO REFER TO CORREC
+    re_pythonexe = re.compile( r'"\S*?exe"' )
+    re_sourcefile = re.compile( r'"\S*?py"' )
     for fn in [Path(x) for x in batfiles]:
-         with fn.open("r") as f:
-             d = f.read()
-         d = replace_pythonexe_in_string(d)
          outfp = installdir / fn.with_suffix(".bat").name
          print("Creating BAT file from template: ", outfp)
+         with fn.open("r") as f:
+             d = f.read()
+         newsource = '"' + str( sourcefile) + '"'
+         newsource = newsource.replace( "\\", "/" )
+         d = re_sourcefile.sub(newsource, d)
+         newpythonpath = '"' + str(sys.executable) + '"'
+         newpythonpath = newpythonpath.replace( "\\", "/" ) 
+         d,n = re_pythonexe.subn(newpythonpath, d)
          with outfp.open("w") as outfile: outfile.write(d)
+
     # INSERT PROPER FILENAMES INTO CONFIG FILES
     for conf_fn, sourcefilename in conf_to_datafile.items():
         fp = setupdir / Path(conf_fn)
@@ -107,10 +114,8 @@ def install_paikkain():
             d = f.read()
         newline = rf"filenames = ['{datafilepath}']"
         newline = newline.replace("\\","/")
-        print("newline = ", newline )
         d = re_datafile_line.sub(newline , d)
-        print("new data", d)
-#        with fp.open("w") as f: f.write(d) # Write updated data
+        with fp.open("w") as f: f.write(d) # Write updated data
         print(f"done")
 
 install_paikkain()
