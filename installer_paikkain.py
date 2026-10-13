@@ -1,9 +1,14 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 # Install pyxls
 import subprocess, requests, sys, glob, re
 from pathlib import Path
 
-packages = ["openpyxl"]
+setupdir = Path("config")
+pythonpath = Path(sys.executable).parent
 batfiles = glob.glob("batsrc/*.bat")
+installdir = Path(__file__).parent # The directory where the installer is
 datafiledir = installdir / Path("paikka-aineistot")
 
 latest_finland_file_id = "1wlivBAY6AAVlIQAeAD7bU4o84JFPe60z"
@@ -11,19 +16,26 @@ latest_finland_version_id = "1Hd5hRbTG0dDkE3gZzdBhw8LE1fCKhS-x"
 latest_world_file_id = "1-8ZDv5jDYx6MpoVYZ7AWg4b_XqWU32fQCkebtirJYH4"
 latest_world_version_id = "1Ki9X5Y_PV2yccdCj9v1ewGtSwdh-_j9_"
 latest_legnames_id = "1kooBZAoItNJreXN8wYTooVjzh7L_DNSD1140Co1pb6Y"
+
 latestdata = {
-    'Paikkain_World_sl-latest.version.txt': latest_world_version_id, 
-    'Paikkain_World_sl-latest.xlsx': latest_world_file_id, 
-    'Paikkain_Fin_sl-latest.version.txt': latest_finland_version_id, 
-    'Paikkain_Fin_sl-latest.xlsx': latest_finland_file_id, 
-    'Paikkain_leg_names-latest.xlsx': latest_legnames_id, 
+    'Paikkain-World-latest.version.txt': latest_world_version_id, 
+    'Paikkain-World-latest.xlsx': latest_world_file_id, 
+    'Paikkain-Fin-sl-latest.version.txt': latest_finland_version_id, 
+    'Paikkain-Fin-sl-latest.xlsx': latest_finland_file_id, 
+    'Paikkain-legnames-latest.xlsx': latest_legnames_id, 
+    'Paikkain-legnames-latest.version.txt': latest_finland_version_id, 
     }
 
-pythonpath = Path(sys.executable).parent
-installdir = Path(__file__).parent # The directory where the installer is
+conf_to_datafile = {
+    "paikkain_world.toml" : 'Paikkain-World-latest.xlsx', 
+    "paikkain_finland.toml" : 'Paikkain-Fin-sl-latest.xlsx', 
+    "paikkain_fullnames.toml" : 'Paikkain-legnames-latest.xlsx',
+}    
+    
+packages = ["openpyxl"]
 
-
-re_python = re.compile(r'".*?exe"')
+re_python = re.compile( r'".*?exe"' )
+re_datafile_line = re.compile( r'filenames = \[(.*)\]' )
 
 def download_file_from_google_drive(file_id, destination):
     URL = "https://docs.google.com/uc?export=download&confirm=1"
@@ -67,7 +79,7 @@ datapackages = [latest_finland_file_id]
 def install_paikkain():
     for package in packages:
         print(f"Trying to install a Python module {package}")
-        install_package(package)
+#        install_package(package)
         print(f"\tinstall {package} successfull.")
     print(datafiledir)
     if not datafiledir.exists():
@@ -76,16 +88,29 @@ def install_paikkain():
         # Download latest Finland data
         print(f"Trying to download latest data files.")
         targetfile = datafiledir / filename 
-        download_file_from_google_drive(google_id, targetfile)
+#        download_file_from_google_drive(google_id, targetfile)
         print(f"\tdownloading {filename} successfull.")
     # REWRITE BAT FILES TO REFER TO CORREC
     for fn in [Path(x) for x in batfiles]:
          with fn.open("r") as f:
              d = f.read()
-             d = replace_pythonexe_in_string(d)
-             outfp = installdir / fn.with_suffix(".bat").name
-             print("Creating BAT file from template: ", outfp)
-             with outfp.open("w") as outfile: outfile.write(d)
-    # Delete batsrc?
+         d = replace_pythonexe_in_string(d)
+         outfp = installdir / fn.with_suffix(".bat").name
+         print("Creating BAT file from template: ", outfp)
+         with outfp.open("w") as outfile: outfile.write(d)
+    # INSERT PROPER FILENAMES INTO CONFIG FILES
+    for conf_fn, sourcefilename in conf_to_datafile.items():
+        fp = setupdir / Path(conf_fn)
+        datafilepath = datafiledir / sourcefilename
+        print(f"Inserting {datafilepath.name} into {fp}.")
+        with fp.open("r") as f:
+            d = f.read()
+        newline = rf"filenames = ['{datafilepath}']"
+        newline = newline.replace("\\","/")
+        print("newline = ", newline )
+        d = re_datafile_line.sub(newline , d)
+        print("new data", d)
+#        with fp.open("w") as f: f.write(d) # Write updated data
+        print(f"done")
 
 install_paikkain()
