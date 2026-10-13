@@ -2,16 +2,15 @@
 import subprocess, requests, sys, glob, re
 from pathlib import Path
 
-pythonpath = Path(sys.executable).parent
+packages = ["openpyxl"]
 batfiles = glob.glob("batsrc/*.bat")
-installdir = Path(__file__).parent # The directory where the installer is
+datafiledir = installdir / Path("paikka-aineistot")
 
 latest_finland_file_id = "1wlivBAY6AAVlIQAeAD7bU4o84JFPe60z"
 latest_finland_version_id = "1Hd5hRbTG0dDkE3gZzdBhw8LE1fCKhS-x"
 latest_world_file_id = "1-8ZDv5jDYx6MpoVYZ7AWg4b_XqWU32fQCkebtirJYH4"
 latest_world_version_id = "1Ki9X5Y_PV2yccdCj9v1ewGtSwdh-_j9_"
 latest_legnames_id = "1kooBZAoItNJreXN8wYTooVjzh7L_DNSD1140Co1pb6Y"
-
 latestdata = {
     'Paikkain_World_sl-latest.version.txt': latest_world_version_id, 
     'Paikkain_World_sl-latest.xlsx': latest_world_file_id, 
@@ -19,8 +18,10 @@ latestdata = {
     'Paikkain_Fin_sl-latest.xlsx': latest_finland_file_id, 
     'Paikkain_leg_names-latest.xlsx': latest_legnames_id, 
     }
-datafiledir = installdir / Path("paikka-aineistot_TEST")
-packages = ["openpyxl"]
+
+pythonpath = Path(sys.executable).parent
+installdir = Path(__file__).parent # The directory where the installer is
+
 
 re_python = re.compile(r'".*?exe"')
 
@@ -85,5 +86,6 @@ def install_paikkain():
              outfp = installdir / fn.with_suffix(".bat").name
              print("Creating BAT file from template: ", outfp)
              with outfp.open("w") as outfile: outfile.write(d)
-    
+    # Delete batsrc?
+
 install_paikkain()
