@@ -1,5 +1,5 @@
 # Paikkain
-Paikkain is a Excel file processor. At it's core, it is a multi-cell Excel search-and-replace, where both search and replace (or append) can happen into several cells within a single row.
+Paikkain is a Excel file processor. At its core, it is a multi-cell Excel search-and-replace, where both search and replace (or append) can happen into several cells within a single row.
 
 Data from processed files is compared line-by-line with a set of rules from a data source file: if there is exactly one match in the source, data is updated. Finally, each line (updated or not) is written into a separate output file.
 
