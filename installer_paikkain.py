@@ -5,11 +5,12 @@
 import subprocess, requests, sys, glob, re
 from pathlib import Path
 
+_TEST = False
 pythonpath = Path(sys.executable).parent
 
 batfiles = glob.glob("batsrc/*.bat")
 installdir = Path(__file__).parent # The directory where the installer is
-setupdir = Path("config")
+configdir = installdir / Path("config")
 sourcefile = installdir / "src" / "paikkain.py"
 datafiledir = installdir / Path("paikka-aineistot")
 
@@ -78,8 +79,8 @@ datapackages = [latest_finland_file_id]
 def install_paikkain():
     for package in packages:
         print(f"Trying to install a Python module {package}")
-#        install_package(package)
-        print(f"\tinstall {package} successfull.")
+        install_package(package)
+        if not _TEST: print(f"\tinstall {package} successfull.")
     print(datafiledir)
     if not datafiledir.exists():
         datafiledir.mkdir()
@@ -87,27 +88,39 @@ def install_paikkain():
         # Download latest Finland data
         print(f"Trying to download latest data files.")
         targetfile = datafiledir / filename 
-#        download_file_from_google_drive(google_id, targetfile)
+        if not _TEST: download_file_from_google_drive(google_id, targetfile)
         print(f"\tdownloading {filename} successfull.")
     # REWRITE BAT FILES TO REFER TO CORREC
-    re_pythonexe = re.compile( r'"\S*?exe"' )
-    re_sourcefile = re.compile( r'"\S*?py"' )
+    # TODO: THESE DEPEND ON THE PATHS NOTING HAVING EMPTY SPACES!
+    re_pythonexe = re.compile( r'"\S*?\.exe"' )
+    re_sourcefile = re.compile( r'"\S*?\.py"' )
+    re_configfile = re.compile( r'"\S*?\.toml"' )
     for fn in [Path(x) for x in batfiles]:
          outfp = installdir / fn.with_suffix(".bat").name
          print("Creating BAT file from template: ", outfp)
          with fn.open("r") as f:
              d = f.read()
+         # Path to src/paikkain.py
          newsource = '"' + str( sourcefile) + '"'
          newsource = newsource.replace( "\\", "/" )
          d = re_sourcefile.sub(newsource, d)
+         # Path to  python itself
          newpythonpath = '"' + str(sys.executable) + '"'
+         newpythonpath = newpythonpath.replace( "pythonw.exe", "pythonw.exe" ) 
          newpythonpath = newpythonpath.replace( "\\", "/" ) 
+         # Path to configfile
+         m = re_configfile.search(d)
+         if m:             
+            oldconfpath = Path(m[0][1:-1]) # Strip ""
+            newconfpath =  '"' + str( configdir / oldconfpath.name) + '"'
+            newconfpath = newconfpath.replace( "\\", "/" ) 
+            d = re_configfile.sub(newconfpath, d)
          d,n = re_pythonexe.subn(newpythonpath, d)
          with outfp.open("w") as outfile: outfile.write(d)
 
     # INSERT PROPER FILENAMES INTO CONFIG FILES
     for conf_fn, sourcefilename in conf_to_datafile.items():
-        fp = setupdir / Path(conf_fn)
+        fp = configdir / Path(conf_fn)
         datafilepath = datafiledir / sourcefilename
         print(f"Inserting {datafilepath.name} into {fp}.")
         with fp.open("r") as f:
