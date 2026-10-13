@@ -5,7 +5,7 @@ version = "3.0"
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
 #filename = /home/kahanpaa/paikkain/paikka-aineistot/paikkain_World-010dev.xlsx
-filenames = ["Z:/paikkain/paikka-aineistot/paikkain_src_persons-004dev.xlsx"]
+filenames = ["Z:/paikkain/paikka-aineistot/paikkain_src_persons-latest.xlsx"]
 #sheetname = persons
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
