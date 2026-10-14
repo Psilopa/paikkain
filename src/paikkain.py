@@ -8,15 +8,14 @@ else:
     import tomli as tomllib
 
 import atexit,  datetime,  time,  argparse
-import jksheet
-from jkerror import jkError
+import jksheet, jkerror
 from jktest import known_test_types 
 from jktools import joinstr,  my2str
 from openpyxl.styles import PatternFill
 from pathlib import Path
 import logging
 progname = 'paikkain'
-version = '4.0'
+version = '4.1'
 
 starttime = time.time()
 log = None # Overidden by the createlogger() call
@@ -53,7 +52,7 @@ def create_output_name(infn, addition):
 
 def read_TOML_config(confname):
     """Read a configuration file in TOML. Raise a jkError on error."""    
-    if not conffn.is_file(): raise jkError(f"Config file '{conffn.absolute()}' does not exist or if not readable.")    
+    if not conffn.is_file(): raise jkerror.jkError(f"Config file '{conffn.absolute()}' does not exist or if not readable.")    
     try:
         with conffn.open("rb") as f: config = tomllib.load(f)
     except tomllib.TOMLDecodeError as msg: raise jkError(f"Config file '{conffn.absolute()}' parsing failed: f{msg}.")
@@ -73,6 +72,7 @@ atexit.register(onexit)
 # READ CONFIGURATION AND KNOWN DATA FILES
 if __name__ == '__main__':
     try: 
+        # SETUP
         # Read command line
         ap =argparse.ArgumentParser(description='Georeferense Excel files with geodata information')
         ap.add_argument('conffn', metavar='conffn', nargs=1, help='configuration file name')
@@ -88,10 +88,12 @@ if __name__ == '__main__':
         conffn = Path(args.conffn[0]) 
         log.info( f"Reading configuration file {conffn}"  )
         c = read_TOML_config(conffn) # CONFIG DATA 
+        # TODO: insert verifier here
 
         inc_sheetname = c['inputfiles'].get('sheetname', None)
-        inc_first_data_line = c['inputfiles'].get('first_data_line', 2)
-        ignorechars = c.get('ignore_in_comparison',"")
+        # TODO: is first line 0 or 1?
+        inc_first_data_line = c['inputfiles'].get('first_data_line', 2) 
+#        ignorechars = c.get('ignore_in_comparison',"")
         # Regular expression replacements
         if 'replacements' in c['inputfiles']:
             regular_subs = c['inputfiles']['replacements']
@@ -119,7 +121,7 @@ if __name__ == '__main__':
         outputformat = c['outputfiles'].get('output_format')
         outputformat = outputformat.lower()
         if outputformat not in ['csv', 'xlsx',  'fast-xlsx']: 
-            log.critical(f"Unknown output format: {outputformat.upper()}"); sys.exit()
+            raise jkerror.jkError( f"Unknown output format: {outputformat.upper()}" )
             
         log.info(f"Output format: {outputformat.upper()}")
 
@@ -147,11 +149,12 @@ if __name__ == '__main__':
             log.debug("Parsing rules from geodata file headers")
             rules = geodata.parse_rules(known_test_types) # Parse row matching rules from GeoData file header rows
             geodatalist.append( geodata )
+                
             #log.debug(f"Found the following test rules:")
             for rule in rules: log.info(f"Rule for column {rule.colname}, rule type '{rule.type}'")
-
-    except (FileNotFoundError,  jkError) as err: 
-        log.critical(f"{err} Exiting.")
+    # WE ARE DONE WITH SETUP
+    except (FileNotFoundError,  jkerror.jkError) as err: 
+        log.critical(f"{err}. Exiting.")
         sys.exit()
 
     # PROCESS INPUT FILES 
@@ -168,14 +171,13 @@ if __name__ == '__main__':
                 outdata = jksheet.woExcel(outfn,inc_first_data_line)
                 outdata.fill_edited_color("fa867e")
             else:
-                log.critical(f"Unknown output format {outputformat} exists. Exiting."); sys.exit()            
+                raise jkerror.jkError(f"Unknown output format {outputformat}. Exiting.")
 #            elif outputformat == 'csv':
 #                outdata = jksheet.CSVOut.fromfile(infn, inc_sheetname) # Copy existing data
 #                origfn = outfn
 #                outfn = outfn.with_suffix("out.csv") 
             if outfn.exists(): 
-                log.critical(f"File {outfn} exists. Will not overwrite. Exiting."); sys.exit()            
-
+                raise jkerror.jkError(f"File {outfn} exists. Will not overwrite. Exiting.")
             firstrow = indata.next_row()
             # Verify that 1st line is valid
             for i in range(len(firstrow)):
@@ -264,7 +266,7 @@ if __name__ == '__main__':
             log.info(f"Saving output file {outfn}")
             if not _SUPPRESS_FILE_CREATION_FOR_TESTING:
                 outdata.close()
-        except (jkError,  FileNotFoundError,  ValueError) as msg:
+        except (jkerror.jkError,  FileNotFoundError,  ValueError) as msg:
             log.critical(msg)
             sys.exit() 
 

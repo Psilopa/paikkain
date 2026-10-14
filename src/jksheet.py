@@ -1,7 +1,7 @@
 # A wrapper around spreadsheet-like files (or other similar objects)
 import openpyxl     
 import jktest,  jktools
-from jkerror import jkError
+import jkerror
 import csv, logging, abc
 from pathlib import Path
 
@@ -93,18 +93,19 @@ class woExcel(jkExcel):
     def iterset(self,colno,value): self._setncell(colno,self.crow,value)
     def iternset(self,colname,value): self._setncell(colname,self.crow,value)
     def itersetrow(self, dict_column_and_value,  edited):
-        """Create a new row from a dctionary with column names as keys
+        """Create a new row from a dictionary with column names as keys. 
     
-    The keyword edited, of provided, must be an array of len(dict_column_and_value), with values controlling cell formatting. 0 for no formatting, 
-    True values (like non-zero)  integer do currently result in cess color
-        """
+Parameters:
+dict_column_and_value: dictionary - a dictionary of column name: cell value. 
+edited: sequence - a list of truth values: 0 or False for no formatting, any True values (like non-zero)  integer do currently result in color (the color comes from the self.fill_edited_color attribute.
+"""
         cellrow = [None]*len(self.colnames)
 #        print("len cellrow = ",  len(cellrow))
         for colname in dict_column_and_value:       
             pos = self._lowern2col[colname.lower()] -1
 #            print(pos, colname)
             cell = openpyxl.cell.WriteOnlyCell(self.sheet, value= dict_column_and_value[colname])
-            cell.number_format = '@' # TEXT
+            cell.number_format = '@' # SETS FORMAT TO TEXT
             if edited and edited[colname] and self.fill_edited: cell.fill = self.fill_edited
             cellrow[pos] = cell
         self.sheet.append(cellrow)    
@@ -156,7 +157,7 @@ class GeoData(roExcel):
     def fromfile(GeoData, fn,  sheetname, first_data_row=4):        
     # TODO: NO OPTION TO PASS SHEET NAME
         fp = Path(fn)
-        if not fp.exists(): raise jkError(f"File {fp} does not exist")
+        if not fp.exists(): raise jkerror.jkError(f"File {fp} does not exist")
         x = GeoData(fn,first_data_row)
         
         x.first_data_row = first_data_row
@@ -207,7 +208,7 @@ class GeoData(roExcel):
         return self._strdata
 
     def find_matches(self, datadict,  rules, ignorechars="",normalize_dict={}): 
-        """Recturns a lregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsregular_subsist of indices to matching rows """
+        """Recturns a list of indices to matching rows """
         matches = []         
         # Standardize value: no double spaces, no .;:
         normalized_data_row = {k: jktools.loc_normalize(v,ignorechars,normalize_dict) for (k, v ) in datadict.items()}
@@ -250,9 +251,13 @@ class GeoData(roExcel):
         except ValueError: # If no suitable column with a recognised output type found was found 
             return None
     
-    def output_column_names(self,  actions=[]):
+    def output_column_names(self,  actions):
+        """A list of those column names that have an associated output-type action.
+        
+        Arguments:
+        actions: list - list of accepted output actions
+        """
         names = []
         for n in range(len(self.rulesrow)):
             if self.rulesrow[n] in actions: names.append(self.colnamesrow[n])
         return names
-    
