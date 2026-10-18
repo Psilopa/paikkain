@@ -14,7 +14,8 @@ editedFill = openpyxl.styles.PatternFill(start_color="fa867e", end_color= "fa867
 #Could be used to format cells depending on the operation type
 op_replaced = 1
 op_appended = 2
-validops = [op_replaced, op_appended]
+OP_NONE = 0
+validops = (OP_NONE, op_replaced, op_appended)
 
 class jkExcel(abc.ABC):
     """First row, first col = 1"""
@@ -104,12 +105,12 @@ class woExcel(jkExcel):
         "Set value on current row by column name."
         self._setncell(colname, self.crow, value)
         
-    def itersetrow(self:Self, dict_column_and_value: dict[str,Any],  edited:dict[str,bool]) -> None:
+    def itersetrow(self:Self, dict_column_and_value: dict[str,Any],  edited:dict[str,int]) -> None:
         """Create a new row from a dictionary with column names as keys. 
     
 Parameters:
 dict_column_and_value - dict: Map column names to column values.
-edited - boolean: Map column name to boolean. True for color (the color comes from the self.fill_edited_color attribute.
+edited - boolean: Map column name to int. Non-zero for color (the color comes from the self.fill_edited_color attribute.
 """
         cellrow: list[None|openpyxl.cell.cell.Cell] = [None]*len(self.colnames) # Start with a row on Nones
 #        print("len cellrow = ",  len(cellrow))
@@ -118,7 +119,7 @@ edited - boolean: Map column name to boolean. True for color (the color comes fr
 #            print(pos, colname)
             cell = openpyxl.cell.WriteOnlyCell(self.sheet, value= dict_column_and_value[colname])
             cell.number_format = '@' # SETS FORMAT TO TEXT
-            if edited and edited[colname] and self.fill_edited: cell.fill = self.fill_edited
+            if (edited[colname] != OP_NONE) and self.fill_edited: cell.fill = self.fill_edited
             cellrow[pos] = cell
         self.sheet.append(cellrow)
 
