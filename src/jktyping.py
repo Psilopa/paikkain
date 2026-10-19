@@ -1,4 +1,4 @@
-from collections.abc import Sequence, KeysView: #Iterator, Callable, Collection, , Generator
+from collections.abc import Sequence, KeysView #Iterator, Callable, Collection, , Generator
 #Examples:
 #   Generator[SampleImageBase,None,None]
 from typing import Self, Any#, Hashable
