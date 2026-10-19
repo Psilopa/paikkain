@@ -14,25 +14,27 @@ configdir = installdir / Path("config")
 sourcefile = installdir / "src" / "paikkain.py"
 datafiledir = installdir / Path("paikka-aineistot")
 
-latest_finland_file_id = "1wlivBAY6AAVlIQAeAD7bU4o84JFPe60z"
+# Data files
+latest_finland_file_id = r"1wlivBAY6AAVlIQAeAD7bU4o84JFPe60z"
+latest_world_file_id = r"1aQi9u-oFLKEoUzPdtDhpDl_Ml0Gvu03h"
+latest_legnames_id = r"1093uscp4XQJ20CiwU9agdm-Ozg80xrQg"
+# Version numbers in files
 latest_finland_version_id = "1Hd5hRbTG0dDkE3gZzdBhw8LE1fCKhS-x"
-latest_world_file_id = "1-8ZDv5jDYx6MpoVYZ7AWg4b_XqWU32fQCkebtirJYH4"
-latest_world_version_id = "1Ki9X5Y_PV2yccdCj9v1ewGtSwdh-_j9_"
-latest_legnames_id = "1kooBZAoItNJreXN8wYTooVjzh7L_DNSD1140Co1pb6Y"
+latest_world_version_id = r"1Ki9X5Y_PV2yccdCj9v1ewGtSwdh-_j9_"
 
 latestdata = {
-    'Paikkain-World-latest.version.txt': latest_world_version_id, 
-    'Paikkain-World-latest.xlsx': latest_world_file_id, 
-    'Paikkain-Fin-sl-latest.version.txt': latest_finland_version_id, 
-    'Paikkain-Fin-sl-latest.xlsx': latest_finland_file_id, 
-    'Paikkain-legnames-latest.xlsx': latest_legnames_id, 
-    'Paikkain-legnames-latest.version.txt': latest_finland_version_id, 
+    'Paikkain-World.version.txt': latest_world_version_id, 
+    'Paikkain-World.xlsx': latest_world_file_id, 
+    'Paikkain-Fin-sl.version.txt': latest_finland_version_id, 
+    'Paikkain-Fin-sl.xlsx': latest_finland_file_id, 
+    'Paikkain-legnames.xlsx': latest_legnames_id, 
+    'Paikkain-legnames.version.txt': latest_finland_version_id, 
     }
 
 conf_to_datafile = {
-    "paikkain_world.toml" : 'Paikkain-World-latest.xlsx', 
-    "paikkain_finland.toml" : 'Paikkain-Fin-sl-latest.xlsx', 
-    "paikkain_fullnames.toml" : 'Paikkain-legnames-latest.xlsx',
+    "paikkain_world.toml" : 'Paikkain-World.xlsx', 
+    "paikkain_finland.toml" : 'Paikkain-Fin-sl.xlsx', 
+    "paikkain_fullnames.toml" : 'Paikkain-legnames.xlsx',
 }    
     
 packages = ["openpyxl"]
