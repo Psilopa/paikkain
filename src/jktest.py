@@ -1,5 +1,6 @@
 from jkerror import jkError
 from jktools import loadtime,  streq
+from jktyping import *
 import operator
 import logging
 progname = 'paikkain'
@@ -51,7 +52,7 @@ class singlerule():
         if isempty(userval) : return 1 # success
         else: return  2 # fail
 
-    def _timetest(self, userdata,  geodata,  cmpfnc): 
+    def _timetest(self, userdata,  geodata,  cmpfnc:Callable) -> int: 
         try:
             userdate = loadtime(userdata)
             geodate = loadtime(geodata)

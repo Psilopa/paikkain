@@ -20,3 +20,9 @@ where = ["."]
 version_scheme = 'no-guess-dev'
 #local_scheme = 'no-local-version'
 version_file = "VERSION.txt"
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
