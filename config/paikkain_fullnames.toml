@@ -26,7 +26,7 @@ filename_add = "names"
 output_format = "fast-xlsx"
 transcribernotefield = "MYTranscriberNotes"
 # Leave append_original_geodata_to_column empty for no storage of pre-prosessing data
-append_original_geodata_to_column = "MYNotes"
+append_original_geodata_to_column = "MYTranscriberNotes"
 original_geodata_to_column_header = "Original name before automatic processing:"
 transcribernote = "Automatic name expansion by {programname} {version} using datafile {knowndatafiles:filenames}."
 add_date_to_note = 1
