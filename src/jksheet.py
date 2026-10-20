@@ -15,14 +15,14 @@ log = logging.getLogger(progname)
 editedFill = openpyxl.styles.PatternFill(start_color="fa867e", end_color= "fa867e", fill_type='solid')
 
 #Could be used to format cells depending on the operation type
-op_replaced = 1
-op_appended = 2
+OP_REPLACED = 1
+OP_APPENDED = 2
 OP_NONE = 0
-validops = (OP_NONE, op_replaced, op_appended)
+validops = (OP_NONE, OP_REPLACED, OP_APPENDED)
 
 class jkExcel(abc.ABC):
     """First row, first col = 1"""
-    def __init__(self:Self,filename,first_data_line_number):     
+    def __init__(self:Self,filename:str|Path,first_data_line_number:int):
         self.filepath = Path(filename)
         self._name2col:dict[str,int] = {} 
         self._lowern2col:dict[str,int] = {} # Should use lowercase column names
@@ -67,7 +67,7 @@ class jkExcel(abc.ABC):
 class woExcel(jkExcel):
     """First row, first col = 1"""    
     supports_fill = True
-    def __init__(self:Self,filename:str,first_data_line:int):     
+    def __init__(self:Self,filename:str|Path,first_data_line:int):     
         self.fill_edited= None
         super().__init__(filename,first_data_line)
     def _openwb(self:Self) -> type_workbook: 
@@ -130,7 +130,7 @@ edited - boolean: Map column name to int. Non-zero for color (the color comes fr
 # --------------------------- INPUT FILES, READ ONLY ---------------------------
 class roExcel(jkExcel):
     supports_fill = False
-    def __init__(self:Self, filename:str, first_data_line:int) -> None:     
+    def __init__(self:Self, filename:str|Path, first_data_line:int) -> None:     
         super().__init__(filename,first_data_line)
         self._update_name2column()
     def _openwb(self:Self) -> type_workbook: 
