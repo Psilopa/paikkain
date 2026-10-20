@@ -1,6 +1,10 @@
 paikkain.log
 testiaineisto/*
 requirements.in
+paikka-aineistot*
+paikkain_finland*.bat
+paikkain_fullnames*.bat
+paikkain_world*.bat
 
 # Installer logs
 pip-log.txt
