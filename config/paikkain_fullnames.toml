@@ -1,5 +1,5 @@
 programname = "paikkain"
-version = "4.02"
+version = "4.03"
 #ignore_in_comparison = ",.;:-—"
 
 [knowndatafiles]
