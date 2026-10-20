@@ -1,9 +1,12 @@
 # A wrapper around spreadsheet-like files (or other similar objects)
-import openpyxl     
-import jktest,  jktools
-import jkerror
+# std 
 import csv, logging, abc
 from pathlib import Path
+# nonstd library 
+import openpyxl     
+# My own
+import jktest,  jktools
+import jkerror
 from jktyping import *
 
 progname = 'paikkain'

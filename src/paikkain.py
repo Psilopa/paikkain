@@ -1,19 +1,21 @@
 # Call example:     jkgeoref setup.ini inputfile.xlsx
 # Current implementation depends on dictionaries keeping their order, which is true in Python3 
 
+# Standard lib
 import sys
 if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
-
 import atexit,  datetime,  time,  argparse
+import logging
+from pathlib import Path
+# Non std-lib
+from openpyxl.styles import PatternFill
+# My own
 import jksheet, jkerror
 from jktest import known_test_types 
 from jktools import joinstr,  my2str
-from openpyxl.styles import PatternFill
-from pathlib import Path
-import logging
 progname = 'paikkain'
 version = '4.1'
 
