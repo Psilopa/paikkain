@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 
 # Install pyxls
-import subprocess, requests, sys, glob, re, argparse
+import subprocess, sys, glob, re, argparse, importlib
 from pathlib import Path
-
+requests = None
+# Later in code set with : requests = importlib.import_module("requests")
+# See also am import within install_paikkain!
 _TEST = False
 pythonpath = Path(sys.executable).parent
 
@@ -23,10 +25,10 @@ latest_finland_version_id = "1Hd5hRbTG0dDkE3gZzdBhw8LE1fCKhS-x"
 latest_world_version_id = r"1Ki9X5Y_PV2yccdCj9v1ewGtSwdh-_j9_"
 
 latestdata = {
-    'Paikkain-World.version.txt': latest_world_version_id, 
-    'Paikkain-World.xlsx': latest_world_file_id, 
-    'Paikkain-Fin-sl.version.txt': latest_finland_version_id, 
-    'Paikkain-Fin-sl.xlsx': latest_finland_file_id, 
+    'Paikkain-world.version.txt': latest_world_version_id, 
+    'Paikkain-world.xlsx': latest_world_file_id, 
+    'Paikkain-fin-sl.version.txt': latest_finland_version_id, 
+    'Paikkain-fin-sl.xlsx': latest_finland_file_id, 
     'Paikkain-legnames.xlsx': latest_legnames_id, 
     'Paikkain-legnames.version.txt': latest_finland_version_id, 
     }
@@ -37,7 +39,6 @@ conf_to_datafile = {
     "paikkain_fullnames.toml" : 'Paikkain-legnames.xlsx',
 }    
     
-packages = ["openpyxl"]
 
 re_datafile_line = re.compile( r'filenames = \[(.*)\]' )
 
@@ -74,12 +75,6 @@ def replace_pythonexe_in_string(datastring):
      newpython = '"' + str(sys.executable.replace("\\","/")) + '"'
      return re_python.sub(newpython, datastring)
 
-def install_packages(packages):
-    for package in packages:
-        print(f"Trying to install a Python module {package}")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        if not _TEST: print(f"\tinstall {package} successfull.")
-
 
 def update_datafiles(latestdata):
     for filename, google_id in latestdata.items():
@@ -89,10 +84,23 @@ def update_datafiles(latestdata):
         if not _TEST: download_file_from_google_drive(google_id, targetfile)
         print(f"\tdownloading {filename} successfull.")
 
+def install_packages():
+    reqfile = "requirements.txt"
+    print(f"Trying to install a Python modules from file {reqfile}")
+    rv = subprocess.run([sys.executable, "-m", "pip", "install", "-r", reqfile])
+    try:
+        rv.check_returncode()
+        print(f"\tInstalled {reqfile} successfull.")
+    except subprocess.CalledProcessError as msg:
+        print(f"\tInstall {reqfile} failed with error message. Exiting.")
+        sys.exit()
+
 def install_paikkain():
     if not datafiledir.exists():
         datafiledir.mkdir()
-    install_packages( packages )
+    install_packages( )  
+    global requests  
+    requests = importlib.import_module("requests") # Can import this only after making sure it is present
     update_datafiles( latestdata )
     # TODO: THESE DEPEND ON THE PATHS NOTING HAVING EMPTY SPACES!
     re_pythonexe = re.compile( r'"\S*?\.exe"' )

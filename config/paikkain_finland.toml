@@ -1,10 +1,8 @@
-programname = "paikkain"
-version = "3.0"
 #ignore_in_comparison = ",.;:-—"
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
-filenames = ["Z:/paikkain/paikka-aineistot/Paikkain_Fin_sl-latest.xlsx"]
+filenames = ['C:/LocalData/jkahanpa/paikkain-dev/paikka-aineistot/Paikkain-Fin-sl.xlsx']
 sheetname = "locdata"
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
@@ -39,12 +37,13 @@ output_format = "fast-xlsx"
 transcribernotefield = "MYTranscriberNotes"
 # Leave append_original_geodata_to_column empty for no storage of pre-prosessing data
 append_original_geodata_to_column = "MYGathering[0][MYCoordinateNotes]"
-original_geodata_to_column_header = "Original geodata before automatic processing:"
-transcribernote = "Automatic georeferencing by {programname} {version} using data files {knowndatafiles:filenames}"
+original_geodata_to_column_header = "Original locality data before automatic processing: {originaldata}."
+transcribernote = "Automatic georeferencing by {nameversion} using data file(s) {sourcepaths}."
 add_date_to_note = 1
 new_column_insertion_position = 10
 data_append_connector = ", "
 replace_fillcolor = "fa867e"
 append_fillcolor = "ffed83"
+short_filenames_in_notes = true
 # TODO: colouring skipped lines not yet implemented
 #skipped_has_coords_fillcolor = ffed83

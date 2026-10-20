@@ -4,10 +4,10 @@ requires = ['setuptools==82.0.1', 'setuptools-scm==10.0.5']
 build-backend = 'setuptools.build_meta'
 
 [project]
-name = 'Paikkain'
-dynamic = [
-  'version'
-]
+name = 'paikkain'
+version = '4.03'
+authors = [ {name = "Jere Kahanpää"} ]
+description = "An Excel file processor. At its core, it is a multi-cell Excel search-and-replace, where both search and replace (or append) can happen into several cells within a single row."
 
 dependencies = [   
 'openpyxl==3.1.5',
@@ -17,10 +17,10 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["."]
 
-[tool.setuptools_scm]
-version_scheme = 'no-guess-dev'
+#[tool.setuptools_scm]
+#version_scheme = 'no-guess-dev'
 #local_scheme = 'no-local-version'
-version_file = "VERSION.txt"
+#version_file = "VERSION.txt"
 
 [tool.pyrefly]
 project-includes = [
