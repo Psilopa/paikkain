@@ -2,11 +2,7 @@
 # Current implementation depends on dictionaries keeping their order, which is true in Python3 
 
 # Standard lib
-import sys
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
+import sys, tomllib
 import atexit,  datetime,  time,  argparse
 import logging
 from pathlib import Path
