@@ -5,6 +5,7 @@ import operator
 import logging
 progname = 'paikkain'
 log = logging.getLogger(progname)
+from jktyping import *
 
 #----- rules and applying them ---------------------------------------------
 _verbose = True
@@ -12,7 +13,7 @@ datebefore = 'datebefore'
 dateafter ='dateafter'
 known_test_types = ("equal", "datebefore", "dateafter","notempty")
 
-def isempty(x): 
+def isempty(x:Any) -> bool: 
     if x is None: return True
     elif x  == "": return True
     else: return False
@@ -23,36 +24,36 @@ class singlerule():
 
     Return values: 0 = No value to test in GeoData, 1 = test success. 2 = test failed"""
     
-    def __init__(self, rule_column_n, colname, rule_type):
+    def __init__(self:Self, rule_column_n:int, colname:str, rule_type:str):
         self.col = int(rule_column_n)  # Move to Excel-type indexing here!
         self.colname=colname
         self.lowercolname=colname.lower()
         self.type = rule_type.strip().lower()
         if self.type not in known_test_types: raise jkError(f"Unknown test type {self.type}")        
 
-    def _equaltest(self, userval,  geoval): 
+    def _equaltest(self:Self, userval:str,  geoval:str) -> int: 
         if ( isempty(geoval) and isempty(userval) ) : return  1 # success
         elif ( isempty(geoval) and not isempty(userval) ) : return  2  # fail            
         elif isempty(userval) : return  2 # Data in geodata, but not in  user input
         elif streq(geoval,  userval): return  1 
         else: return  2
 
-#    def _notequaltest(self, userval,  geoval): 
+#    def _notequaltest(self:Self, userval,  geoval:str): 
 #        if ( isempty(geoval) and isempty(userval) ) : return 2 # fail
 #        elif ( isempty(geoval) and not isempty(userval) ) : return  2  # fail            
 #        elif isempty(userval) : return  1 # Data in geodata, but not in  user input: notequal
 #        elif streq(geoval,  userval): return  2 
 #        else: return  1
 
-    def _notemptytest(self, userval,  geoval): 
+    def _notemptytest(self:Self, userval:str,  geoval:str): 
         if isempty(userval) : return 2 # fail
         else: return  1 # success
 
-    def _isemptytest(self, userval,  geoval): # Not currently in use
+    def _isemptytest(self:Self, userval:str,  geoval:str): # Not currently in use
         if isempty(userval) : return 1 # success
         else: return  2 # fail
 
-    def _timetest(self, userdata,  geodata,  cmpfnc:Callable) -> int: 
+    def _timetest(self:Self, userdata:str,  geodata:str,  cmpfnc:Callable) -> int: 
         try:
             userdate = loadtime(userdata)
             geodate = loadtime(geodata)
@@ -64,7 +65,7 @@ class singlerule():
             raise err
         return 0
 
-    def match(self, userdata,  geodata):     
+    def match(self:Self, userdata:dict[str,str],  geodata:str) -> int:     
         """Returns 0 if no real rest was done (ie anything matches), 1 for success, 2 for failure. 
         If matching failed because of an unknown input format,  raises a ValueError. """
         geoval = (geodata or "").strip() 
@@ -78,12 +79,14 @@ class singlerule():
             return self._notemptytest(userval,  geoval)
         elif self.type in [datebefore,  dateafter]:             
             retval = None
+            cmpfnc = None # Will be set in 
             if ( isempty(geoval) and isempty(userval) ) : retval =  1 # empty matches empty
             elif ( isempty(geoval) and not isempty(userval) ) : retval =  2  # empty and non-empty: fail
             elif isempty(userval) : retval =  2 # empty and non-empty: fail
             else: # non-empty and non-empty
                 if self.type == datebefore: cmpfnc = operator.le # userdate before (or equal to) geodata test date
-                if self.type == dateafter: cmpfnc = operator.ge # after or equal
+                elif self.type == dateafter: cmpfnc = operator.ge # after or equal
+                else: assert False, "Unknown data type reached even after an earlier check. This should not happen."
                 retval = self._timetest(userval,  geoval,  cmpfnc)
             return retval
         else: raise jkError(f"Unknown test type {self.type } for test {self.colname}")        
