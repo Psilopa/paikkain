@@ -99,10 +99,22 @@ def get_arguments():
     ap.add_argument('input_files', metavar='input_files', nargs='+', help='input data file(s)')
     return ap.parse_args()
 
-def insertcolumns(outdata, insertcolnames, position):
-    for colname in insertcolnames[::-1]: # Insert in reverse order to keep original order
-        outdata.addcolumn(position,  [colname])                
+IF_EXISTS_INSERT = 16
+IF_EXISTS_SKIP = 17
+IF_EXISTS_ERROR = 18
+def insertcolumns(outdata:jksheet.woExcel, newcolnames:list[str], position:int, if_exists:int=IF_EXISTS_SKIP):
+    """Insert column names from a list.
 
+    Keyword if_exists defines what happens if a name already exists."""
+    for colname in newcolnames[::-1]: # Insert in reverse order to keep original order
+        if (colname not in outdata.colnames) or if_exists == IF_EXISTS_INSERT:
+            log.info(f"Adding column {colname} to output table.")
+            outdata.addcolumn(position,  [colname])
+        # These modes are UNTESTED
+        elif if_exists == IF_EXISTS_SKIP:
+            log.debug(f"Column {colname} is already in output table.")
+        elif IF_EXISTS_ERROR:
+            assert False, "Tried to insert an already existing column into the output table"
 
 #  ------------------ main script ---------------------
 def main():
@@ -163,7 +175,6 @@ def main():
         if pnote: pnotecolname = c['outputfiles'].get('transcribernotefield')
         else: pnotecolname = False 
         itemsep = c['outputfiles'].get('data_append_connector') + " "
-        new_field_insert_point = c['outputfiles'].get('new_column_insertion_position')
 
         original_geodata_header = c['outputfiles'].get('original_geodata_to_column_header')
         append_original_geodata_to_column = c['outputfiles'].get('append_original_geodata_to_column',None)
@@ -204,37 +215,24 @@ def main():
 #                outfn = outfn.with_suffix("out.csv") 
             if outfn.exists(): 
                 raise jkError(f"File {outfn} exists. Will not overwrite. Exiting.")
-            indata_header = indata.next_row() # First row of indata as is 
+            indata_header = indata.next_row() # First row of indata 
             # Verify that 1st line is valid
             verify_first_row(indata_header)
 
 
             # ADD COLUMNS INTO OUTPUT IF CONFIG OR KNOWN DATA CONTAIN COLS NOT IN INPUT
-            sourcecolnames = []
+            insertcolumns(outdata,indata_header, 1) 
+            insert_point = c['outputfiles'].get('new_column_insertion_position')
+            insert_point = min( insert_point, outdata.ncols ) # Update 
+            outcolnames = []
             for f in sourcedatalist:
-                sourcecolnames.extend( f.output_column_names(cmd.activeops) ) # Names of output columns with active output commands
-            insertcolnames = [ x for x in unique_keeporder(sourcecolnames) if x not in indata_header ]
-            insertcolumns(outdata,indata_header, 1)
-            new_field_insert_point = min( new_field_insert_point, outdata.ncols )
-            insertcolumns(outdata,insertcolnames, new_field_insert_point) 
-            print(f"END POINT: {outdata.colnames}.")
-
-            
-#            for name in indata_header[::-1]:  # Grab first row. Reverse order to as insertion re-reverses them
-#                    outdata.addcolumn(1,  [name])                
-#            for sourcedata in sourcedatalist:
-#                for colname in sourcedata.output_column_names(cmd.activeops)[::-1]:  # Reverse order to as insertion re-reverses them
-#                    if not outdata.hascolumn(colname):
-#                        log.info(f"adding column {colname} to output table")
-#                        outdata.addcolumn(new_field_insert_point,  [colname])
-            if pnotecolname and pnote:
-                if not outdata.hascolumn(pnotecolname):
-                    log.info(f"adding column {pnotecolname} to output table")
-                    outdata.addcolumn(new_field_insert_point, [pnotecolname])
-            if append_original_geodata_to_column:
-                if not outdata.hascolumn(append_original_geodata_to_column):
-                    log.info(f"adding column {append_original_geodata_to_column} to output table")
-                    outdata.addcolumn(new_field_insert_point ,  [append_original_geodata_to_column]) 
+                outcolnames = f.output_column_names(cmd.activeops) 
+                insertcolumns(outdata,outcolnames, insert_point, if_exists = IF_EXISTS_SKIP) 
+                # Add output columns with active output commands (ie. replace, append)
+            if pnotecolname and pnote and not outdata.hascolumn(pnotecolname): # We have a comment to write
+                insertcolumns(outdata,[pnotecolname], insert_point, if_exists = IF_EXISTS_SKIP) 
+            if append_original_geodata_to_column and not outdata.hascolumn(append_original_geodata_to_column):
+                insertcolumns(outdata,[append_original_geodata_to_column], insert_point, if_exists = IF_EXISTS_SKIP) 
 
 
             # Step through input file and process line by line
