@@ -38,7 +38,7 @@ class jkExcel(abc.ABC):
     def filename(self:Self) -> Path: return self.filepath
     @property
     def colnames(self:Self) -> KeysView[str]:
-        return self._name2col.keys()
+        return tuple(self._name2col.keys())
     @property
     def lowercolnames(self:Self) -> KeysView[str]:
         return self._lowern2col.keys()    
@@ -68,7 +68,7 @@ class woExcel(jkExcel):
     """First row, first col = 1"""    
     supports_fill = True
     def __init__(self:Self,filename:str|Path,first_data_line:int):     
-        self.fill_edited= None
+        self.fill_edited= None # Should be private
         super().__init__(filename,first_data_line)
     def _openwb(self:Self) -> type_workbook: 
         # Create a new workbook
@@ -76,6 +76,10 @@ class woExcel(jkExcel):
         self.sheet = wb.create_sheet()
         return wb
     # PROPERTY ATTRIBUTES
+    @property
+    def fill_edited_color(self:Self) ->  openpyxl.styles.PatternFil|None:
+        return self.fill_edited
+    @fill_edited_color.setter
     def fill_edited_color(self:Self, color:str) -> None:
         self.fill_edited = openpyxl.styles.PatternFill(start_color=color, end_color= color, fill_type='solid')
     # FILE CONTENT MODIFICATION
@@ -173,7 +177,7 @@ class GeoData(roExcel):
         self.reverse_column_names = []
         
     @classmethod
-    def fromfile(GeoData, fn:str|Path,  sheetname:str, first_data_row:int=4) ->GeoData:        
+    def fromfile(GeoData, fn:str|Path,  first_data_row:int=4) ->GeoData:        
     # TODO: NO OPTION TO PASS SHEET NAME
         fp = Path(fn)
         if not fp.exists(): raise jkerror.jkError(f"File {fp} does not exist")

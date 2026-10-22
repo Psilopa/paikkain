@@ -16,11 +16,12 @@ from jktools import joinstr,  my2str
 from jktyping import *
 
 starttime = time.time()
-jksheet.OP_REPLACED = 1
 _SUPPRESS_FILE_CREATION_FOR_TESTING = False
-first_data_line_of_geodata = 4
 # Default logger, will overwrite by call to createlogger()
 log = logging.getLogger("paikkain default logger")
+
+def unique_keeporder(mylist):
+    return list(dict.fromkeys(mylist)) 
 
 class valid_commands(): # Available commands for output operations
     # These should be set in code
@@ -57,77 +58,69 @@ def onexit() -> None:
     endtime = time.time()
     if log: log.info("Time spent: %-.2f s" % (endtime - starttime) )
 
+atexit.register(onexit)
+
 def create_output_name(infn:str|Path, addition:str|Path) -> Path:
     infn = Path(infn)
     return infn.with_suffix(f".{addition}" + infn.suffix)
-
+#  ------------------ main sections ---------------------
 def read_TOML_config(confname:Path) -> dict[str,Any]:
     """Read a configuration file in TOML. Raise a jkError on error."""    
-    if not conffn.is_file(): raise jkError(f"Config file '{conffn.absolute()}' does not exist or if not readable.")    
+    if not confname.is_file(): raise jkError(f"Config file '{confname.absolute()}' does not exist or if not readable.")    
     try:
-        with conffn.open("rb") as f: config = tomllib.load(f)
-    except tomllib.TOMLDecodeError as msg: raise jkError(f"Config file '{conffn.absolute()}' parsing failed: f{msg}.")
+        with confname.open("rb") as f: config = tomllib.load(f)
+    except tomllib.TOMLDecodeError as msg: raise jkError(f"Config file '{confname.absolute()}' parsing failed: f{msg}.")
     # UGLY HARDCODED COMPONENT REPLACEMENT!
     if not "filenames" in config["knowndatafiles"]: raise ValueError("Config file has no knowndatafiles:filenames item.")
     return config    
 
-#  ------------------ main script
-atexit.register(onexit)
 
-
-def loadSourceData( datasourcepaths:Sequence[Path] ) -> Sequence[jksheet.GeoData]:
-    geodatalist = []
-    for knowdatafn in datasourcepaths:
-        log.info(f"Loading geodata from file {knowdatafn}")
-        geodata = jksheet.GeoData.fromfile(Path(knowdatafn), 
-            knownd_sheetnames, 
-            first_data_line_of_geodata)     
+def loadSourceData( datasourcepaths:Sequence[Path], firstline:int ) -> Sequence[jksheet.GeoData]:
+    sourcedatalist = []
+    for sourcepath in datasourcepaths:
+        log.info(f"Loading geodata from file {sourcepath}")
+        geodata = jksheet.GeoData.fromfile(sourcepath, 
+                                            firstline)     
         log.debug("Parsing rules from geodata file headers")
-        geodatalist.append( geodata )
-    return geodatalist
+        sourcedatalist.append( geodata )
+    return sourcedatalist
 
 def verify_first_row(firstrow) -> None: # TODO: TYPING
     for i in range(len(firstrow)):
         if not firstrow[i]: 
             raise ValueError(f"File {indata.filename}, column {i+1}: Empty column name (first row) not allowed.")
 
-def add_columns_to_output(outdata, geodatalist, pnotecolname, pnote, append_original_geodata_to_column) -> None:
-            for name in firstrow[::-1]:  # Grab first row. Reverse order to as insertion re-reverses them
-                    outdata.addcolumn(1,  [name])                
-            for sourcedata in geodatalist:
-                for colname in sourcedata.output_column_names(cmd.activeops)[::-1]:  # Reverse order to as insertion re-reverses them
-                    if not outdata.hascolumn(colname):
-                        log.info(f"adding column {colname} to output table")
-                        outdata.addcolumn(new_field_insert_point,  [colname])
-            if pnotecolname and pnote:
-                if not outdata.hascolumn(pnotecolname):
-                    log.info(f"adding column {pnotecolname} to output table")
-                    outdata.addcolumn(new_field_insert_point, [pnotecolname])
-            if append_original_geodata_to_column:
-                if not outdata.hascolumn(append_original_geodata_to_column):
-                    log.info(f"adding column {append_original_geodata_to_column} to output table")
-                    outdata.addcolumn(new_field_insert_point ,  [append_original_geodata_to_column]) 
+def add_columns_to_output(firstrow, outdata, sourcedatalist, pnotecolname, pnote, append_original_geodata_to_column) -> None:
+    cmd = valid_commands()
 
+def get_arguments():
+    ap =argparse.ArgumentParser(description='Georeferense Excel files with geodata information')
+    ap.add_argument('conffn', metavar='conffn', nargs=1, help='configuration file name')
+    ap.add_argument('input_files', metavar='input_files', nargs='+', help='input data file(s)')
+    return ap.parse_args()
+
+def insertcolumns(outdata, insertcolnames, position):
+    for colname in insertcolnames[::-1]: # Insert in reverse order to keep original order
+        outdata.addcolumn(position,  [colname])                
+
+
+#  ------------------ main script ---------------------
 def main():
     # READ CONFIGURATION AND KNOWN DATA FILES
     cmd = valid_commands()
     try: 
         # SETUP
         # Read command line
-        ap =argparse.ArgumentParser(description='Georeferense Excel files with geodata information')
-        ap.add_argument('conffn', metavar='conffn', nargs=1, help='configuration file name')
-        ap.add_argument('input_files', metavar='input_files', nargs='+', help='input data file(s)')
-        args = ap.parse_args()
-
+        args = get_arguments()
         executedir = Path(sys.argv[0]).parent
         log = createlogger( executedir / Path(meta.name + ".log") )
         log.info(f"Starting {meta.nameversion} on {datetime.datetime.now()}")
         input_files  = [Path(x) for x in args.input_files]
 
         # Read parameters from config file
-        conffn = Path(args.conffn[0]) 
-        log.info( f"Reading configuration file {conffn}"  )
-        c = read_TOML_config(conffn) # CONFIG DATA 
+        confgipath = Path(args.conffn[0]) 
+        log.info( f"Reading configuration file {confgipath}"  )
+        c = read_TOML_config(confgipath) # CONFIG DATA 
         # TODO: insert verifier here
 
         inc_sheetname = c['inputfiles'].get('sheetname', None)
@@ -140,7 +133,6 @@ def main():
         else: regular_subs = {}
 
         knownd_keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
-        knownd_sheetnames = c['knowndatafiles'].get('sheetname',None)
         datasourcepaths = [ Path(x) for x in  c['knowndatafiles'].get('filenames') ]  
         try:
             cmd.replace = c['knowndatafiles']['cmd_replace']
@@ -159,12 +151,11 @@ def main():
         pnote = pnote.format(nameversion = meta.nameversion,
                              sourcepaths= ", ".join(notepaths))
 
-        output_marker = c['outputfiles'].get('filename_add')
         if c['outputfiles'].get('add_date_to_note'):
             pnote = pnote + " (%s)" % datetime.date.today()
         outputformat = c['outputfiles'].get('output_format')
         outputformat = outputformat.lower()
-        if outputformat not in ['csv', 'xlsx',  'fast-xlsx']: 
+        if outputformat not in ['fast-xlsx']: #'csv' not yet supported
             raise jkError( f"Unknown output format: {outputformat.upper()}" )
             
         log.info(f"Output format: {outputformat.upper()}")
@@ -182,9 +173,10 @@ def main():
 
         rules = []
         # Read geodata files
-        geodatalist = loadSourceData(datasourcepaths)
-        assert len(geodatalist) == 1, "More than one source data file not yet supported."
-        for sourcedata in geodatalist: # THIS WORKS ONLY IF WE HAVE 1 FILE
+        source_firstdataline = c['knowndatafiles']['first_dataline']  # MUST HAVE
+        sourcedatalist = loadSourceData(datasourcepaths, source_firstdataline)
+        assert len(sourcedatalist) == 1, "More than one source data file not yet supported."
+        for sourcedata in sourcedatalist: # THIS WORKS ONLY IF WE HAVE 1 FILE
             rules = sourcedata.parse_rules(known_test_types) # Parse row matching rules from GeoData file header rows
     # WE ARE DONE WITH SETUP
     except (FileNotFoundError,  jkError) as err: 
@@ -199,11 +191,11 @@ def main():
             # OPEN INPUT DATA
             indata = jksheet.roExcel(infn, inc_first_data_line)            
             # SETUP FOR OUTPUT FILE
-            outfn = create_output_name(infn, output_marker)        
+            outfn = create_output_name(infn, c['outputfiles'].get('output_append_to_filename'))        
             if outputformat == 'fast-xlsx': 
                 outfn = outfn.with_suffix(".out.xlsx") 
                 outdata = jksheet.woExcel(outfn,inc_first_data_line)
-                outdata.fill_edited_color("fa867e")
+                outdata.fill_edited_color = "fa867e"
             else:
                 raise jkError(f"Unknown output format {outputformat}. Exiting.")
 #            elif outputformat == 'csv':
@@ -212,12 +204,38 @@ def main():
 #                outfn = outfn.with_suffix("out.csv") 
             if outfn.exists(): 
                 raise jkError(f"File {outfn} exists. Will not overwrite. Exiting.")
-            firstrow = indata.next_row()
+            indata_header = indata.next_row() # First row of indata as is 
             # Verify that 1st line is valid
-            verify_first_row(firstrow)
+            verify_first_row(indata_header)
+
 
             # ADD COLUMNS INTO OUTPUT IF CONFIG OR KNOWN DATA CONTAIN COLS NOT IN INPUT
-            add_columns_to_output(outdata, geodatalist, pnotecolname, pnote, append_original_geodata_to_column)
+            sourcecolnames = []
+            for f in sourcedatalist:
+                sourcecolnames.extend( f.output_column_names(cmd.activeops) ) # Names of output columns with active output commands
+            insertcolnames = [ x for x in unique_keeporder(sourcecolnames) if x not in indata_header ]
+            insertcolumns(outdata,indata_header, 1)
+            new_field_insert_point = min( new_field_insert_point, outdata.ncols )
+            insertcolumns(outdata,insertcolnames, new_field_insert_point) 
+            print(f"END POINT: {outdata.colnames}.")
+
+            
+#            for name in indata_header[::-1]:  # Grab first row. Reverse order to as insertion re-reverses them
+#                    outdata.addcolumn(1,  [name])                
+#            for sourcedata in sourcedatalist:
+#                for colname in sourcedata.output_column_names(cmd.activeops)[::-1]:  # Reverse order to as insertion re-reverses them
+#                    if not outdata.hascolumn(colname):
+#                        log.info(f"adding column {colname} to output table")
+#                        outdata.addcolumn(new_field_insert_point,  [colname])
+            if pnotecolname and pnote:
+                if not outdata.hascolumn(pnotecolname):
+                    log.info(f"adding column {pnotecolname} to output table")
+                    outdata.addcolumn(new_field_insert_point, [pnotecolname])
+            if append_original_geodata_to_column:
+                if not outdata.hascolumn(append_original_geodata_to_column):
+                    log.info(f"adding column {append_original_geodata_to_column} to output table")
+                    outdata.addcolumn(new_field_insert_point ,  [append_original_geodata_to_column]) 
+
 
             # Step through input file and process line by line
             # 1st line (header line) has already been read
@@ -236,7 +254,7 @@ def main():
                         if val and val.strip(): # Has some content
                             raise WriteRow 
                     matchrows = []
-                    for sourcedata in geodatalist:
+                    for sourcedata in sourcedatalist:
                         matchrows.extend(
                             sourcedata.find_matches( origdict, rules, normalize_dict=regular_subs )
                             )
@@ -251,8 +269,8 @@ def main():
                     originaldata = [] # Kept to store original data from cells that may be replaced (for later reporting in the output)
                     mrow = matchrows[0] # index of the single matching row
                     # TODO PROBLEM: which geodata file did this come from!
-                    assert len(geodatalist) == 1, "More than one source data file not yet supported."
-                    geodata = geodatalist[0]
+                    assert len(sourcedatalist) == 1, "More than one source data file not yet supported."
+                    geodata = sourcedatalist[0]
                     match = geodata.get_result_dict(mrow, cmd.activeops) # match as a colname: val dictionary
                     for colname,val in match.items():
 #                        print(colname,val )

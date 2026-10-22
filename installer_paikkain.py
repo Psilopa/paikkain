@@ -34,14 +34,14 @@ latestdata = {
     }
 
 conf_to_datafile = {
-    "paikkain_world.toml" : 'Paikkain-World.xlsx', 
-    "paikkain_finland.toml" : 'Paikkain-Fin-sl.xlsx', 
+    "paikkain_world.toml" : 'Paikkain-world.xlsx', 
+    "paikkain_finland.toml" : 'Paikkain-fin-sl.xlsx', 
     "paikkain_fullnames.toml" : 'Paikkain-legnames.xlsx',
 }    
     
 
 re_datafile_line = re.compile( r'filenames = \[(.*)\]' )
-    re_pythonexe = re.compile( r'"\S*?\.exe"' )
+re_pythonexe = re.compile( r'"\S*?\.exe"' )
 
 def download_file_from_google_drive(file_id, destination):
     URL = "https://docs.google.com/uc?export=download&confirm=1"
@@ -71,6 +71,8 @@ def save_response_content(response, destination):
                 f.write(chunk)
 
 def update_datafiles(latestdata):
+    global requests  
+    requests = importlib.import_module("requests") # Can import this only after making sure it is present
     for filename, google_id in latestdata.items():
         # Download latest Finland data
         print(f"Trying to download latest data files.")
