@@ -108,8 +108,8 @@ def add_columns_to_output(outdata, geodatalist, pnotecolname, pnote, append_orig
                     log.info(f"adding column {append_original_geodata_to_column} to output table")
                     outdata.addcolumn(new_field_insert_point ,  [append_original_geodata_to_column]) 
 
-# READ CONFIGURATION AND KNOWN DATA FILES
-if __name__ == '__main__':
+def main():
+    # READ CONFIGURATION AND KNOWN DATA FILES
     cmd = valid_commands()
     try: 
         # SETUP
@@ -301,3 +301,7 @@ if __name__ == '__main__':
 
     # Ask for any input before closing window
     # Now handled to a OS script wrapper (.bat on Windows)
+
+
+if __name__ == '__main__':
+    main()

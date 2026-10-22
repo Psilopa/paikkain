@@ -41,6 +41,7 @@ conf_to_datafile = {
     
 
 re_datafile_line = re.compile( r'filenames = \[(.*)\]' )
+re_pythonexe = re.compile( r'"\S*?\.exe"' )
 
 def download_file_from_google_drive(file_id, destination):
     URL = "https://docs.google.com/uc?export=download&confirm=1"
@@ -73,7 +74,7 @@ def save_response_content(response, destination):
 
 def replace_pythonexe_in_string(datastring):
      newpython = '"' + str(sys.executable.replace("\\","/")) + '"'
-     return re_python.sub(newpython, datastring)
+     return re_pythonexe.sub(newpython, datastring)
 
 
 def update_datafiles(latestdata):
@@ -103,7 +104,6 @@ def install_paikkain():
     requests = importlib.import_module("requests") # Can import this only after making sure it is present
     update_datafiles( latestdata )
     # TODO: THESE DEPEND ON THE PATHS NOTING HAVING EMPTY SPACES!
-    re_pythonexe = re.compile( r'"\S*?\.exe"' )
     re_sourcefile = re.compile( r'"\S*?\.py"' )
     re_configfile = re.compile( r'"\S*?\.toml"' )
     for fn in [Path(x) for x in batfiles]:
