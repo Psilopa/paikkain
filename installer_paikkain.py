@@ -41,7 +41,7 @@ conf_to_datafile = {
     
 
 re_datafile_line = re.compile( r'filenames = \[(.*)\]' )
-re_pythonexe = re.compile( r'"\S*?\.exe"' )
+    re_pythonexe = re.compile( r'"\S*?\.exe"' )
 
 def download_file_from_google_drive(file_id, destination):
     URL = "https://docs.google.com/uc?export=download&confirm=1"
@@ -61,21 +61,14 @@ def get_confirm_token(response):
     for key, value in response.cookies.items():
         if key.startswith("download_warning"):
             return value
-
     return None
 
 def save_response_content(response, destination):
     CHUNK_SIZE = 32768
-
     with open(destination, "wb") as f:
         for chunk in response.iter_content(CHUNK_SIZE):
             if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
-
-def replace_pythonexe_in_string(datastring):
-     newpython = '"' + str(sys.executable.replace("\\","/")) + '"'
-     return re_pythonexe.sub(newpython, datastring)
-
 
 def update_datafiles(latestdata):
     for filename, google_id in latestdata.items():
