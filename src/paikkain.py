@@ -6,9 +6,9 @@ import sys, tomllib
 import atexit,  datetime,  time,  argparse
 import logging
 from pathlib import Path
-# Non std-lib
+# Non std-lib but available through pip
 from openpyxl.styles import PatternFill
-# My own
+# My own modules
 from jkerror import jkError
 import jksheet, meta
 from jktest import known_test_types 
