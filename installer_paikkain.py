@@ -86,7 +86,7 @@ def install_packages():
     rv = subprocess.run([sys.executable, "-m", "pip", "install", "-r", reqfile])
     try:
         rv.check_returncode()
-        print(f"\tInstalled {reqfile} successfull.")
+        print(f"\tInstalled {reqfile}.")
     except subprocess.CalledProcessError as msg:
         print(f"\tInstall {reqfile} failed with error message. Exiting.")
         sys.exit()
