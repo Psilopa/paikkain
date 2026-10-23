@@ -18,7 +18,7 @@ first_data_line = 3
 skip_if_nonempty = ["MYGathering[0][MYLongitude]","MYGathering[0][MYLatitude]"]
 
 [outputfiles]
-filename_add = "autolocalities"
+output_append_to_filename = "autolocalities"
 # output_format supported values: xlsx,fast-xlsx, csv. 
 # XLSX keeps original formatting, but is very slow.
 # CSV support is experimental ... avoid!

@@ -12,7 +12,7 @@ cmd_nothing = "no_output"
 cmd_fillempty = "fillempty"
 
 [inputfiles]
-#datasheetname = Specimens
+#datasheetname = "Specimens"
 first_data_line = 3
 # Skip_row if_data_exists
 skip_if_nonempty = ["MYGathering[0][MYLongitude]","MYGathering[0][MYLatitude]"]
@@ -32,7 +32,7 @@ skip_if_nonempty = ["MYGathering[0][MYLongitude]","MYGathering[0][MYLatitude]"]
 " sn\\.?$"     = " socken" 
 
 [outputfiles]
-output_append_to_filename = "autolocalities"
+output_append_to_filename = "autolocalities-finland"
 # output_format supported values: fast-xlsx [NOT YET csv]
 output_format = "fast-xlsx"
 transcribernotefield = "MYTranscriberNotes"
