@@ -187,7 +187,7 @@ def main():
 
         rules = []
         # Read geodata files
-        source_firstdataline = c['knowndatafiles']['first_dataline']  # MUST HAVE
+        source_firstdataline = c['knowndatafiles']['first_data_line']  # MUST HAVE
         sourcedatalist = loadSourceData(datasourcepaths, source_firstdataline)
         assert len(sourcedatalist) == 1, "More than one source data file not yet supported."
         for sourcedata in sourcedatalist: # THIS WORKS ONLY IF WE HAVE 1 FILE

@@ -2,13 +2,15 @@
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
-filenames = ['/home/kahanpaa/projects/paikkain/paikka-aineistot/Paikkain-legnames.xlsx']
+filenames = ['C:/LocalData/jkahanpa/paikkain-dev/paikka-aineistot/Paikkain-legnames.xlsx']
 #sheetname = "names"
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
 cmd_append = "append"
 cmd_nothing = "no_output"
 cmd_fillempty = "fillempty"
+first_data_line = 4
+
 
 [inputfiles]
 #datasheetname = "Specimens"

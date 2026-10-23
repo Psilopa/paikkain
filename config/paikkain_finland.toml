@@ -2,8 +2,8 @@
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
-filenames = ['/home/kahanpaa/projects/paikkain/paikka-aineistot/Paikkain-fin-sl.xlsx']
-first_dataline = 4
+filenames = ['C:/LocalData/jkahanpa/paikkain-dev/paikka-aineistot/Paikkain-fin-sl.xlsx']
+first_data_line = 4
 #sheetname = "locdata"
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
