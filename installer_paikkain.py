@@ -75,7 +75,6 @@ def replace_pythonexe_in_string(datastring):
      newpython = '"' + str(sys.executable.replace("\\","/")) + '"'
      return re_python.sub(newpython, datastring)
 
-
 def update_datafiles(latestdata):
     global requests  
     requests = importlib.import_module("requests") # Can import this only after making sure it is present
@@ -84,8 +83,9 @@ def update_datafiles(latestdata):
         # Download latest Finland data
         targetfile = datafiledir / filename 
         if targetfile.exists(): # Delete previous version
-            print(f"\tremoving old existing {targetfile}.")
-            targetfile.unlink()
+            backupname = targetfile.with_suffix(".oldversion" + targetfile.suffix)
+            print(f"\tmoving old file to {backupname}.")
+            targetfile.rename(backupname)
         print(f"\ttrying to download replacement.")            
         if not _TEST: download_file_from_google_drive(google_id, targetfile)
         print(f"\tdownloading {filename} successfull.")
