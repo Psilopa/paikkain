@@ -2,13 +2,14 @@
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
-filenames = ['C:/LocalData/jkahanpa/paikkain/paikka-aineistot/paikkain_lepidoptera_authors.xlsx']
+filenames = ['C:/LocalData/jkahanpa/paikkain-main/paikkain-main/paikka-aineistot/paikkain_lepidoptera_authors.xlsx']
 sheetname = "locdata"
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
 cmd_append = "append"
 cmd_nothing = "no_output"
 cmd_fillempty = "fillempty"
+first_data_line = 4
 
 [inputfiles]
 #datasheetname = Specimens
@@ -17,7 +18,7 @@ first_data_line = 3
 skip_if_nonempty = ["MYGathering[0][MYUnit][0][MYIdentification][0][MYAuthor]"]
 
 [outputfiles]
-filename_add = "autoauthors"
+output_append_to_filename = "autoauthors"
 # output_format supported values: fast-xlsx  # NOT YET csv. 
 output_format = "fast-xlsx"
 transcribernotefield = "MYTranscriberNotes"
