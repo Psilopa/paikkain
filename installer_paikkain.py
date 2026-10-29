@@ -70,13 +70,22 @@ def save_response_content(response, destination):
             if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
 
+def replace_pythonexe_in_string(datastring):
+     newpython = '"' + str(sys.executable.replace("\\","/")) + '"'
+     return re_python.sub(newpython, datastring)
+
 def update_datafiles(latestdata):
     global requests  
     requests = importlib.import_module("requests") # Can import this only after making sure it is present
+    print(f"Trying to download latest data files.")
     for filename, google_id in latestdata.items():
         # Download latest Finland data
-        print(f"Trying to download latest data files.")
         targetfile = datafiledir / filename 
+        if targetfile.exists(): # Delete previous version
+            backupname = targetfile.with_suffix(".oldversion" + targetfile.suffix)
+            print(f"\tmoving old file to {backupname}.")
+            targetfile.replace(backupname)
+        print(f"\ttrying to download replacement.")            
         if not _TEST: download_file_from_google_drive(google_id, targetfile)
         print(f"\tdownloading {filename} successfull.")
 
