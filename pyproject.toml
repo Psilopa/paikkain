@@ -5,7 +5,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'paikkain'
-version = '4.3'
+version = '4.4'
 authors = [ {name = "Jere Kahanpää"} ]
 description = "An Excel file processor. At its core, it is a multi-cell Excel search-and-replace, where both search and replace (or append) can happen into several cells within a single row."
 
