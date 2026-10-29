@@ -85,7 +85,7 @@ def update_datafiles(latestdata):
         if targetfile.exists(): # Delete previous version
             backupname = targetfile.with_suffix(".oldversion" + targetfile.suffix)
             print(f"\tmoving old file to {backupname}.")
-            targetfile.rename(backupname)
+            targetfile.replace(backupname)
         print(f"\ttrying to download replacement.")            
         if not _TEST: download_file_from_google_drive(google_id, targetfile)
         print(f"\tdownloading {filename} successfull.")
