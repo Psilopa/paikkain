@@ -20,9 +20,11 @@ datafiledir = installdir / Path("paikka-aineistot")
 latest_finland_file_id = r"1wlivBAY6AAVlIQAeAD7bU4o84JFPe60z"
 latest_world_file_id = r"1aQi9u-oFLKEoUzPdtDhpDl_Ml0Gvu03h"
 latest_legnames_id = r"1093uscp4XQJ20CiwU9agdm-Ozg80xrQg"
+latest_lep_file_id = r"1QpQeJzRV1Ijq0OvZkrFRna6dlsI6zOdD"
 # Version numbers in files
 latest_finland_version_id = "1Hd5hRbTG0dDkE3gZzdBhw8LE1fCKhS-x"
 latest_world_version_id = r"1Ki9X5Y_PV2yccdCj9v1ewGtSwdh-_j9_"
+
 
 latestdata = {
     'Paikkain-world.version.txt': latest_world_version_id, 
@@ -31,12 +33,14 @@ latestdata = {
     'Paikkain-fin-sl.xlsx': latest_finland_file_id, 
     'Paikkain-legnames.xlsx': latest_legnames_id, 
     'Paikkain-legnames.version.txt': latest_finland_version_id, 
+    'paikkain_lepidoptera_authors.xlsx': latest_lep_file_id,
     }
 
 conf_to_datafile = {
     "paikkain_world.toml" : 'Paikkain-world.xlsx', 
     "paikkain_finland.toml" : 'Paikkain-fin-sl.xlsx', 
     "paikkain_fullnames.toml" : 'Paikkain-legnames.xlsx',
+    "paikkain_lepnames.toml" : 'paikkain_lepidoptera_authors.xlsx',
 }    
     
 
