@@ -2,7 +2,8 @@
 
 [knowndatafiles]
 # NOTE: Currently one one knowndata file per ini file is supported. 
-filenames = ['C:/LocalData/jkahanpa/paikkain-dev/paikka-aineistot/Paikkain-World.xlsx']
+filenames = ['C:/LocalData/jkahanpa/paikkain-dev/paikka-aineistot/Paikkain-world.xlsx']
+first_data_line = 4
 sheetname = "locdata"
 keep_original_data_marker = "<original>"
 cmd_replace = "replace"
@@ -17,7 +18,7 @@ first_data_line = 3
 skip_if_nonempty = ["MYGathering[0][MYLongitude]","MYGathering[0][MYLatitude]"]
 
 [outputfiles]
-filename_add = "autolocalities"
+output_append_to_filename = "autolocalities"
 # output_format supported values: xlsx,fast-xlsx, csv. 
 # XLSX keeps original formatting, but is very slow.
 # CSV support is experimental ... avoid!

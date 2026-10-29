@@ -6,9 +6,9 @@ import sys, tomllib
 import atexit,  datetime,  time,  argparse
 import logging
 from pathlib import Path
-# Non std-lib
+# Non std-lib but available through pip
 from openpyxl.styles import PatternFill
-# My own
+# My own modules
 from jkerror import jkError
 import jksheet, meta
 from jktest import known_test_types 
@@ -16,11 +16,13 @@ from jktools import joinstr,  my2str
 from jktyping import *
 
 starttime = time.time()
-jksheet.OP_REPLACED = 1
+LOGLEVEL = logging.INFO
 _SUPPRESS_FILE_CREATION_FOR_TESTING = False
-first_data_line_of_geodata = 4
 # Default logger, will overwrite by call to createlogger()
 log = logging.getLogger("paikkain default logger")
+
+def unique_keeporder(mylist):
+    return list(dict.fromkeys(mylist)) 
 
 class valid_commands(): # Available commands for output operations
     # These should be set in code
@@ -37,7 +39,7 @@ class valid_commands(): # Available commands for output operations
 
 def createlogger(fn:Path) -> logging.Logger:
     logger = logging.getLogger(meta.name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(LOGLEVEL)
     fh = logging.FileHandler(fn)
     ch = logging.StreamHandler()
     formatter = logging.Formatter('%(message)s [%(levelname)s]')
@@ -57,78 +59,84 @@ def onexit() -> None:
     endtime = time.time()
     if log: log.info("Time spent: %-.2f s" % (endtime - starttime) )
 
+atexit.register(onexit)
+
 def create_output_name(infn:str|Path, addition:str|Path) -> Path:
     infn = Path(infn)
     return infn.with_suffix(f".{addition}" + infn.suffix)
-
+#  ------------------ main sections ---------------------
 def read_TOML_config(confname:Path) -> dict[str,Any]:
     """Read a configuration file in TOML. Raise a jkError on error."""    
-    if not conffn.is_file(): raise jkError(f"Config file '{conffn.absolute()}' does not exist or if not readable.")    
+    if not confname.is_file(): raise jkError(f"Config file '{confname.absolute()}' does not exist or if not readable.")    
     try:
-        with conffn.open("rb") as f: config = tomllib.load(f)
-    except tomllib.TOMLDecodeError as msg: raise jkError(f"Config file '{conffn.absolute()}' parsing failed: f{msg}.")
-    # UGLY HARDCODED COMPONENT REPLACEMENT!
-    if not "filenames" in config["knowndatafiles"]: raise ValueError("Config file has no knowndatafiles:filenames item.")
+        with confname.open("rb") as f: config = tomllib.load(f)
+    except tomllib.TOMLDecodeError as msg: raise jkError(f"Config file '{confname.absolute()}' parsing failed: f{msg}.")
     return config    
 
-#  ------------------ main script
-atexit.register(onexit)
 
-
-def loadSourceData( datasourcepaths:Sequence[Path] ) -> Sequence[jksheet.GeoData]:
-    geodatalist = []
-    for knowdatafn in datasourcepaths:
-        log.info(f"Loading geodata from file {knowdatafn}")
-        geodata = jksheet.GeoData.fromfile(Path(knowdatafn), 
-            knownd_sheetnames, 
-            first_data_line_of_geodata)     
+def loadSourceData( datasourcepaths:Sequence[Path], firstline:int ) -> Sequence[jksheet.GeoData]:
+    sourcedatalist = []
+    for sourcepath in datasourcepaths:
+        log.info(f"Loading geodata from file {sourcepath}")
+        geodata = jksheet.GeoData.fromfile(sourcepath, 
+                                            firstline)     
         log.debug("Parsing rules from geodata file headers")
-        geodatalist.append( geodata )
-    return geodatalist
+        sourcedatalist.append( geodata )
+    return sourcedatalist
 
 def verify_first_row(firstrow) -> None: # TODO: TYPING
     for i in range(len(firstrow)):
         if not firstrow[i]: 
             raise ValueError(f"File {indata.filename}, column {i+1}: Empty column name (first row) not allowed.")
 
-def add_columns_to_output(outdata, geodatalist, pnotecolname, pnote, append_original_geodata_to_column) -> None:
-            for name in firstrow[::-1]:  # Grab first row. Reverse order to as insertion re-reverses them
-                    outdata.addcolumn(1,  [name])                
-            for sourcedata in geodatalist:
-                for colname in sourcedata.output_column_names(cmd.activeops)[::-1]:  # Reverse order to as insertion re-reverses them
-                    if not outdata.hascolumn(colname):
-                        log.info(f"adding column {colname} to output table")
-                        outdata.addcolumn(new_field_insert_point,  [colname])
-            if pnotecolname and pnote:
-                if not outdata.hascolumn(pnotecolname):
-                    log.info(f"adding column {pnotecolname} to output table")
-                    outdata.addcolumn(new_field_insert_point, [pnotecolname])
-            if append_original_geodata_to_column:
-                if not outdata.hascolumn(append_original_geodata_to_column):
-                    log.info(f"adding column {append_original_geodata_to_column} to output table")
-                    outdata.addcolumn(new_field_insert_point ,  [append_original_geodata_to_column]) 
-
-# READ CONFIGURATION AND KNOWN DATA FILES
-if __name__ == '__main__':
+def add_columns_to_output(firstrow, outdata, sourcedatalist, pnotecolname, pnote, append_original_geodata_to_column) -> None:
     cmd = valid_commands()
+
+def get_arguments():
+    ap =argparse.ArgumentParser(description='Georeferense Excel files with geodata information')
+    ap.add_argument('conffn', metavar='conffn', nargs=1, help='configuration file name')
+    ap.add_argument('input_files', metavar='input_files', nargs='+', help='input data file(s)')
+    return ap.parse_args()
+
+IF_EXISTS_INSERT = 16
+IF_EXISTS_SKIP = 17
+IF_EXISTS_ERROR = 18
+def insertcolumns(outdata:jksheet.woExcel, newcolnames:list[str], position:int,
+                  if_exists:int=IF_EXISTS_SKIP, nologging:bool=False):
+    """Insert column names from a list.
+
+    Keyword if_exists defines what happens if a name already exists."""
+    for colname in newcolnames[::-1]: # Insert in reverse order to keep original order
+        if (colname not in outdata.colnames) or if_exists == IF_EXISTS_INSERT:
+            if not nologging: log.info(f"Adding column {colname} to output table.")
+            outdata.addcolumn(position,  [colname])
+        # These modes are UNTESTED
+        elif if_exists == IF_EXISTS_SKIP:
+            log.debug(f"Column {colname} is already in output table.")
+        elif IF_EXISTS_ERROR:
+            assert False, "Tried to insert an already existing column into the output table"
+
+#  ------------------ main script ---------------------
+cmd = valid_commands()
+def main():
+    # READ CONFIGURATION AND KNOWN DATA FILES
     try: 
         # SETUP
         # Read command line
-        ap =argparse.ArgumentParser(description='Georeferense Excel files with geodata information')
-        ap.add_argument('conffn', metavar='conffn', nargs=1, help='configuration file name')
-        ap.add_argument('input_files', metavar='input_files', nargs='+', help='input data file(s)')
-        args = ap.parse_args()
-
+        args = get_arguments()
         executedir = Path(sys.argv[0]).parent
+        global log
         log = createlogger( executedir / Path(meta.name + ".log") )
         log.info(f"Starting {meta.nameversion} on {datetime.datetime.now()}")
         input_files  = [Path(x) for x in args.input_files]
 
         # Read parameters from config file
-        conffn = Path(args.conffn[0]) 
-        log.info( f"Reading configuration file {conffn}"  )
-        c = read_TOML_config(conffn) # CONFIG DATA 
+        confgipath = Path(args.conffn[0]) 
+        log.info( f"Reading configuration file {confgipath}"  )
+        c = read_TOML_config(confgipath) # CONFIG DATA 
         # TODO: insert verifier here
+        if not "filenames" in c["knowndatafiles"]:
+            raise ValueError("Config file has no knowndatafiles:filenames item.")
 
         inc_sheetname = c['inputfiles'].get('sheetname', None)
         # TODO: is first line 0 or 1?
@@ -140,7 +148,6 @@ if __name__ == '__main__':
         else: regular_subs = {}
 
         knownd_keep = c['knowndatafiles'].get('keep_original_data_marker').lower()
-        knownd_sheetnames = c['knowndatafiles'].get('sheetname',None)
         datasourcepaths = [ Path(x) for x in  c['knowndatafiles'].get('filenames') ]  
         try:
             cmd.replace = c['knowndatafiles']['cmd_replace']
@@ -159,12 +166,11 @@ if __name__ == '__main__':
         pnote = pnote.format(nameversion = meta.nameversion,
                              sourcepaths= ", ".join(notepaths))
 
-        output_marker = c['outputfiles'].get('filename_add')
         if c['outputfiles'].get('add_date_to_note'):
             pnote = pnote + " (%s)" % datetime.date.today()
         outputformat = c['outputfiles'].get('output_format')
         outputformat = outputformat.lower()
-        if outputformat not in ['csv', 'xlsx',  'fast-xlsx']: 
+        if outputformat not in ['fast-xlsx']: #'csv' not yet supported
             raise jkError( f"Unknown output format: {outputformat.upper()}" )
             
         log.info(f"Output format: {outputformat.upper()}")
@@ -172,19 +178,19 @@ if __name__ == '__main__':
         if pnote: pnotecolname = c['outputfiles'].get('transcribernotefield')
         else: pnotecolname = False 
         itemsep = c['outputfiles'].get('data_append_connector') + " "
-        new_field_insert_point = c['outputfiles'].get('new_column_insertion_position')
 
         original_geodata_header = c['outputfiles'].get('original_geodata_to_column_header')
         append_original_geodata_to_column = c['outputfiles'].get('append_original_geodata_to_column',None)
         skip_if_content_columnnames = c['inputfiles'].get('skip_if_nonempty',[]) # Empty list default
         skip_if_content_columnnames = [x.lower() for x in skip_if_content_columnnames]
-        log.debug(f"skipping row if content if found in columns {skip_if_content_columnnames}")
+        log.debug(f"skipping row if content is found in columns {skip_if_content_columnnames}")
 
         rules = []
         # Read geodata files
-        geodatalist = loadSourceData(datasourcepaths)
-        assert len(geodatalist) == 1, "More than one source data file not yet supported."
-        for sourcedata in geodatalist: # THIS WORKS ONLY IF WE HAVE 1 FILE
+        source_firstdataline = c['knowndatafiles']['first_data_line']  # MUST HAVE
+        sourcedatalist = loadSourceData(datasourcepaths, source_firstdataline)
+        assert len(sourcedatalist) == 1, "More than one source data file not yet supported."
+        for sourcedata in sourcedatalist: # THIS WORKS ONLY IF WE HAVE 1 FILE
             rules = sourcedata.parse_rules(known_test_types) # Parse row matching rules from GeoData file header rows
     # WE ARE DONE WITH SETUP
     except (FileNotFoundError,  jkError) as err: 
@@ -199,11 +205,11 @@ if __name__ == '__main__':
             # OPEN INPUT DATA
             indata = jksheet.roExcel(infn, inc_first_data_line)            
             # SETUP FOR OUTPUT FILE
-            outfn = create_output_name(infn, output_marker)        
+            outfn = create_output_name(infn, c['outputfiles'].get('output_append_to_filename'))        
             if outputformat == 'fast-xlsx': 
                 outfn = outfn.with_suffix(".out.xlsx") 
                 outdata = jksheet.woExcel(outfn,inc_first_data_line)
-                outdata.fill_edited_color("fa867e")
+                outdata.fill_edited_color = "fa867e"
             else:
                 raise jkError(f"Unknown output format {outputformat}. Exiting.")
 #            elif outputformat == 'csv':
@@ -212,12 +218,23 @@ if __name__ == '__main__':
 #                outfn = outfn.with_suffix("out.csv") 
             if outfn.exists(): 
                 raise jkError(f"File {outfn} exists. Will not overwrite. Exiting.")
-            firstrow = indata.next_row()
+            indata_header = indata.next_row() # First row of indata 
             # Verify that 1st line is valid
-            verify_first_row(firstrow)
+            verify_first_row(indata_header)
 
-            # ADD COLUMNS INTO OUTPUT IF CONFIG OR KNOWN DATA CONTAIN COLS NOT IN INPUT
-            add_columns_to_output(outdata, geodatalist, pnotecolname, pnote, append_original_geodata_to_column)
+            # ADD COLUMNS INTO OUTPUT FILE
+            insertcolumns(outdata,indata_header, 1, nologging=True) 
+            insert_point = c['outputfiles'].get('new_column_insertion_position')
+            insert_point = min( insert_point, outdata.ncols ) # Update 
+            outcolnames = []
+            for f in sourcedatalist:
+                outcolnames = f.output_column_names(cmd.activeops) 
+                insertcolumns(outdata,outcolnames, insert_point, if_exists = IF_EXISTS_SKIP) 
+                # Add output columns with active output commands (ie. replace, append)
+            if pnotecolname and pnote: # We have a comment to write
+                insertcolumns(outdata,[pnotecolname], insert_point, if_exists = IF_EXISTS_SKIP) 
+            if append_original_geodata_to_column: # We have original data to store 
+                insertcolumns(outdata,[append_original_geodata_to_column], insert_point, if_exists = IF_EXISTS_SKIP) 
 
             # Step through input file and process line by line
             # 1st line (header line) has already been read
@@ -226,7 +243,7 @@ if __name__ == '__main__':
                 if (rowcount % 10) == 0: log.info(f"Processing row {rowcount}") 
                 origdict = indata.next_row_as_dict() 
                 outdict =  origdict.copy()
-                edited = { k: jksheet.OP_NONE for k in outdict.keys() } # Edit status for each item on this row
+                outdata.edited = {}
                 try: 
                     if rowcount < inc_first_data_line: # If this is a header line, just write
                         raise WriteRow
@@ -236,7 +253,7 @@ if __name__ == '__main__':
                         if val and val.strip(): # Has some content
                             raise WriteRow 
                     matchrows = []
-                    for sourcedata in geodatalist:
+                    for sourcedata in sourcedatalist:
                         matchrows.extend(
                             sourcedata.find_matches( origdict, rules, normalize_dict=regular_subs )
                             )
@@ -245,14 +262,14 @@ if __name__ == '__main__':
                     if nmatch == 0:  
                         raise WriteRow
                     if nmatch > 1:  
-                        log.debug(f"Found multiple matches for inputrow {rowcount}: {matchrows}. Check geodata source file. Skipping row")
+                        log.warning(f"Found multiple matches for inputrow {rowcount}: {matchrows}. Check geodata source file. Skipping row")
                         raise WriteRow
                     # OK, so we have exactly one match
                     originaldata = [] # Kept to store original data from cells that may be replaced (for later reporting in the output)
                     mrow = matchrows[0] # index of the single matching row
                     # TODO PROBLEM: which geodata file did this come from!
-                    assert len(geodatalist) == 1, "More than one source data file not yet supported."
-                    geodata = geodatalist[0]
+                    assert len(sourcedatalist) == 1, "More than one source data file not yet supported."
+                    geodata = sourcedatalist[0]
                     match = geodata.get_result_dict(mrow, cmd.activeops) # match as a colname: val dictionary
                     for colname,val in match.items():
 #                        print(colname,val )
@@ -266,30 +283,30 @@ if __name__ == '__main__':
                             if oval: originaldata.append(oval)
                         # OK to here
                         assert geodata is not None
-                        oper = geodata.get_output_action_for_column(colname, cmd.outputops) 
-                        if oper not in cmd.outputops:
+                        action = geodata.get_output_action_for_column(colname, cmd.outputops)
+                        if action not in cmd.outputops:                            
                             continue # Skip column with actions that are not output operations
-                        elif (oper == cmd.replace) or ( oper == cmd.fillempty and not outdict[colname] ):
+                        if (action == cmd.replace) or ( action == cmd.fillempty and not outdict[colname] ):
                             outdict[colname] = val
-                            edited[colname] = jksheet.OP_REPLACED
-                        elif oper == cmd.append and val: # Append non-empty values only
+                            outdata.edited[colname] = jksheet.cellstatus.REPLACED
+                        elif action == cmd.append and val: # Append non-empty values only
                             outdict[colname] = joinstr( outdict.get(colname,"" ),  val ,  itemsep ) 
-                            edited[colname] = jksheet.OP_APPENDED
+                            outdata.edited[colname] = jksheet.cellstatus.APPENDED
                     if append_original_geodata_to_column: # Append old data to designated cell
                             origstr = original_geodata_header.format(originaldata
                                                                      = itemsep.join(originaldata) ) 
                             originaldata_col = append_original_geodata_to_column.lower()
                             existing_data_in_field = str(outdict.get(originaldata_col,"" )) 
                             outdict[originaldata_col] = joinstr(existing_data_in_field,  origstr,  ". ") 
-                            edited[originaldata_col] = True
+                            outdata.edited[originaldata_col] = jksheet.cellstatus.APPENDED
                     # If available, add note by the program to clumn 'pnotecolname'
                     if pnotecolname and pnote:
                         pnote_column = pnotecolname.lower()
                         outdict[pnote_column] = joinstr(outdict.get(pnote_column,"" ),  pnote ,  itemsep) 
-                        edited[pnote_column] = True
+                        outdata.edited[pnote_column] = jksheet.cellstatus.APPENDED
                     raise WriteRow
                 except WriteRow:
-                    outdata.itersetrow(outdict,  edited)
+                    outdata.itersetrow(outdict)
                     next(outdata) # Move to next line in outdata
                     rowcount += 1
             log.info(f"Saving output file {outfn}")
@@ -301,3 +318,6 @@ if __name__ == '__main__':
 
     # Ask for any input before closing window
     # Now handled to a OS script wrapper (.bat on Windows)
+
+if __name__ == '__main__':
+    main()

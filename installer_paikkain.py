@@ -34,13 +34,14 @@ latestdata = {
     }
 
 conf_to_datafile = {
-    "paikkain_world.toml" : 'Paikkain-World.xlsx', 
-    "paikkain_finland.toml" : 'Paikkain-Fin-sl.xlsx', 
+    "paikkain_world.toml" : 'Paikkain-world.xlsx', 
+    "paikkain_finland.toml" : 'Paikkain-fin-sl.xlsx', 
     "paikkain_fullnames.toml" : 'Paikkain-legnames.xlsx',
 }    
     
 
 re_datafile_line = re.compile( r'filenames = \[(.*)\]' )
+re_pythonexe = re.compile( r'"\S*?\.exe"' )
 
 def download_file_from_google_drive(file_id, destination):
     URL = "https://docs.google.com/uc?export=download&confirm=1"
@@ -60,12 +61,10 @@ def get_confirm_token(response):
     for key, value in response.cookies.items():
         if key.startswith("download_warning"):
             return value
-
     return None
 
 def save_response_content(response, destination):
     CHUNK_SIZE = 32768
-
     with open(destination, "wb") as f:
         for chunk in response.iter_content(CHUNK_SIZE):
             if chunk:  # filter out keep-alive new chunks
@@ -96,7 +95,7 @@ def install_packages():
     rv = subprocess.run([sys.executable, "-m", "pip", "install", "-r", reqfile])
     try:
         rv.check_returncode()
-        print(f"\tInstalled {reqfile} successfull.")
+        print(f"\tInstalled {reqfile}.")
     except subprocess.CalledProcessError as msg:
         print(f"\tInstall {reqfile} failed with error message. Exiting.")
         sys.exit()
@@ -109,7 +108,6 @@ def install_paikkain():
     requests = importlib.import_module("requests") # Can import this only after making sure it is present
     update_datafiles( latestdata )
     # TODO: THESE DEPEND ON THE PATHS NOTING HAVING EMPTY SPACES!
-    re_pythonexe = re.compile( r'"\S*?\.exe"' )
     re_sourcefile = re.compile( r'"\S*?\.py"' )
     re_configfile = re.compile( r'"\S*?\.toml"' )
     for fn in [Path(x) for x in batfiles]:

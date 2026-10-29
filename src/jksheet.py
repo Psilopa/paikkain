@@ -15,10 +15,11 @@ log = logging.getLogger(progname)
 editedFill = openpyxl.styles.PatternFill(start_color="fa867e", end_color= "fa867e", fill_type='solid')
 
 #Could be used to format cells depending on the operation type
-OP_REPLACED = 1
-OP_APPENDED = 2
-OP_NONE = 0
-validops = (OP_NONE, OP_REPLACED, OP_APPENDED)
+class cellstatus:
+    REPLACED = 1
+    APPENDED = 2
+    UNCHANGED = 0
+validops = (cellstatus.UNCHANGED, cellstatus.REPLACED, cellstatus.APPENDED)
 
 class jkExcel(abc.ABC):
     """First row, first col = 1"""
@@ -38,7 +39,7 @@ class jkExcel(abc.ABC):
     def filename(self:Self) -> Path: return self.filepath
     @property
     def colnames(self:Self) -> KeysView[str]:
-        return self._name2col.keys()
+        return tuple(self._name2col.keys())
     @property
     def lowercolnames(self:Self) -> KeysView[str]:
         return self._lowern2col.keys()    
@@ -68,7 +69,8 @@ class woExcel(jkExcel):
     """First row, first col = 1"""    
     supports_fill = True
     def __init__(self:Self,filename:str|Path,first_data_line:int):     
-        self.fill_edited= None
+        self.fill_edited= None # Should be private
+        self.edited = {} # Mapping from column name to cell edit status
         super().__init__(filename,first_data_line)
     def _openwb(self:Self) -> type_workbook: 
         # Create a new workbook
@@ -76,6 +78,10 @@ class woExcel(jkExcel):
         self.sheet = wb.create_sheet()
         return wb
     # PROPERTY ATTRIBUTES
+    @property
+    def fill_edited_color(self:Self) ->  openpyxl.styles.PatternFil|None:
+        return self.fill_edited
+    @fill_edited_color.setter
     def fill_edited_color(self:Self, color:str) -> None:
         self.fill_edited = openpyxl.styles.PatternFill(start_color=color, end_color= color, fill_type='solid')
     # FILE CONTENT MODIFICATION
@@ -108,7 +114,7 @@ class woExcel(jkExcel):
         "Set value on current row by column name."
         self._setncell(colname, self.crow, value)
         
-    def itersetrow(self:Self, dict_column_and_value: dict[str,Any],  edited:dict[str,int]) -> None:
+    def itersetrow(self:Self, dict_column_and_value: dict[str,Any]) -> None:
         """Create a new row from a dictionary with column names as keys. 
     
 Parameters:
@@ -122,7 +128,8 @@ edited - boolean: Map column name to int. Non-zero for color (the color comes fr
 #            print(pos, colname)
             cell = openpyxl.cell.WriteOnlyCell(self.sheet, value= dict_column_and_value[colname])
             cell.number_format = '@' # SETS FORMAT TO TEXT
-            if (edited[colname] != OP_NONE) and self.fill_edited: cell.fill = self.fill_edited
+            editedQ = self.edited.get(colname,cellstatus.UNCHANGED)
+            if (editedQ != cellstatus.UNCHANGED) and self.fill_edited: cell.fill = self.fill_edited
             cellrow[pos] = cell
         self.sheet.append(cellrow)
 
@@ -173,7 +180,7 @@ class GeoData(roExcel):
         self.reverse_column_names = []
         
     @classmethod
-    def fromfile(GeoData, fn:str|Path,  sheetname:str, first_data_row:int=4) ->GeoData:        
+    def fromfile(GeoData, fn:str|Path,  first_data_row:int=4) ->GeoData:        
     # TODO: NO OPTION TO PASS SHEET NAME
         fp = Path(fn)
         if not fp.exists(): raise jkerror.jkError(f"File {fp} does not exist")
