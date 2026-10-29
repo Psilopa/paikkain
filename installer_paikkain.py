@@ -49,16 +49,12 @@ re_pythonexe = re.compile( r'"\S*?\.exe"' )
 
 def download_file_from_google_drive(file_id, destination):
     URL = "https://docs.google.com/uc?export=download&confirm=1"
-
     session = requests.Session()
-
     response = session.get(URL, params={"id": file_id}, stream=True)
     token = get_confirm_token(response)
-
     if token:
         params = {"id": file_id, "confirm": token}
         response = session.get(URL, params=params, stream=True)
-
     save_response_content(response, destination)
 
 def get_confirm_token(response):
@@ -73,10 +69,6 @@ def save_response_content(response, destination):
         for chunk in response.iter_content(CHUNK_SIZE):
             if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
-
-def replace_pythonexe_in_string(datastring):
-     newpython = '"' + str(sys.executable.replace("\\","/")) + '"'
-     return re_python.sub(newpython, datastring)
 
 def update_datafiles(latestdata):
     global requests  
@@ -111,9 +103,10 @@ def install_paikkain():
     global requests  
     requests = importlib.import_module("requests") # Can import this only after making sure it is present
     update_datafiles( latestdata )
-    # TODO: THESE DEPEND ON THE PATHS NOTING HAVING EMPTY SPACES!
+    # TODO: THESE DEPEND ON THE PATHS NOT HAVING EMPTY SPACES!
     re_sourcefile = re.compile( r'"\S*?\.py"' )
     re_configfile = re.compile( r'"\S*?\.toml"' )
+    # CREATE BAT FILES AND UPDATE CONTENT
     for fn in [Path(x) for x in batfiles]:
          outfp = installdir / fn.with_suffix(".bat").name
          print("Creating BAT file from template: ", outfp)
