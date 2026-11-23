@@ -87,7 +87,7 @@ def loadSourceData( datasourcepaths:Sequence[Path], firstline:int ) -> Sequence[
 def verify_first_row(firstrow) -> None: # TODO: TYPING
     for i in range(len(firstrow)):
         if not firstrow[i]: 
-            raise ValueError(f"File {indata.filename}, column {i+1}: Empty column name (first row) not allowed.")
+            raise ValueError(f"Column {i+1}: Empty column name (first row) not allowed.")
 
 def add_columns_to_output(firstrow, outdata, sourcedatalist, pnotecolname, pnote, append_original_geodata_to_column) -> None:
     cmd = valid_commands()
