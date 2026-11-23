@@ -5,6 +5,9 @@ paikka-aineistot*
 paikkain_finland*.bat
 paikkain_fullnames*.bat
 paikkain_world*.bat
+*droptarget.bat 
+lep*.bat 
+*.xlsx
 
 # Installer logs
 pip-log.txt

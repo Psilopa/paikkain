@@ -3,7 +3,7 @@
 import csv, logging, abc
 from pathlib import Path
 # nonstd library 
-import openpyxl     
+import openpyxl
 # My own
 import jktest,  jktools
 import jkerror
